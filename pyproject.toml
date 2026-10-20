@@ -24,8 +24,8 @@ classifiers = [
 dependencies = []
 
 [project.urls]
-Homepage = "https://github.com/OWNER/mibox-fixer"
-Issues = "https://github.com/OWNER/mibox-fixer/issues"
+Homepage = "https://github.com/aghamorad/mibox-fixer"
+Issues = "https://github.com/aghamorad/mibox-fixer/issues"
 
 [project.scripts]
 mibox-fixer = "fixer.cli:main"

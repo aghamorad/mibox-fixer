@@ -51,7 +51,7 @@ Requires **Python 3.9+** (tkinter is included with the python.org and Homebrew
 builds; on Debian/Ubuntu install `python3-tk`) and **adb**.
 
 ```bash
-git clone https://github.com/OWNER/mibox-fixer && cd mibox-fixer
+git clone https://github.com/aghamorad/mibox-fixer && cd mibox-fixer
 
 # adb, if you don't have it:
 brew install --cask android-platform-tools   # macOS
