@@ -156,3 +156,7 @@ respective authors, fetched from their own release pages:
 ## License
 
 MIT — see `LICENSE`.
+
+## Security
+
+This project never asks for your GitHub password or a token. Pushing is done with SSH keys.
