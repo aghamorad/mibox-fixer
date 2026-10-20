@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  test:
+    name: tests (${{ matrix.os }} / py${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: ["3.9", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install tkinter (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y python3-tk
+
+      - name: Byte-compile everything
+        run: python -m compileall -q fixer tests
+
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -t . -v
+
+      - name: Smoke-test the CLI
+        run: |
+          python -m fixer --list
+          python -m fixer --help
+
+      - name: Import the GUI (no display required)
+        run: python -c "import fixer.gui; print('gui imports ok')"
+
+  links:
+    name: verify download links
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Confirms every APK URL still resolves, so a deleted upstream
+      # release is caught here rather than on a user's machine.
+      - name: Check every app download URL
+        run: |
+          python - <<'PY'
+          import urllib.request, sys
+          from fixer import catalog
+          from fixer.downloader import resolve_url
+          bad = []
+          for app in catalog.APPS:
+              try:
+                  url, name = resolve_url(app, ["armeabi-v7a", "arm64-v8a"])
+              except Exception as exc:
+                  bad.append(f"{app.key}: {exc}")
+                  continue
+              req = urllib.request.Request(url, method="HEAD",
+                                           headers={"User-Agent": "MiBoxFixer-CI"})
+              try:
+                  with urllib.request.urlopen(req, timeout=30) as r:
+                      print(f"OK   {r.status}  {app.key:14} {name}")
+              except Exception as exc:
+                  bad.append(f"{app.key}: {exc}")
+          if bad:
+              print("\nBroken links:")
+              for b in bad:
+                  print("  ", b)
+              sys.exit(1)
+          PY

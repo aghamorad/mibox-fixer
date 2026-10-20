@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mibox-fixer"
+version = "1.0.0"
+description = "Debloat, de-Google and re-app a Xiaomi Mi Box (or any Android TV box) over ADB."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+keywords = ["android-tv", "xiaomi", "mi-box", "adb", "debloat", "android"]
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3",
+    "Topic :: Home Automation",
+    "Topic :: System :: Systems Administration",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/OWNER/mibox-fixer"
+Issues = "https://github.com/OWNER/mibox-fixer/issues"
+
+[project.scripts]
+mibox-fixer = "fixer.cli:main"
+
+[project.gui-scripts]
+mibox-fixer-gui = "fixer.gui:main"
+
+[tool.setuptools]
+packages = ["fixer"]
