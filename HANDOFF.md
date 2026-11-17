@@ -6,8 +6,41 @@ into a clean, fast media player over ADB: disable the junk, install the good
 apps, apply the tweaks.
 
 ## Current state
-Version 1.2.0. 28 tests pass, the CLI smoke test and the GUI import pass. Every
+Version 1.2.1. 28 tests pass, the CLI smoke test and the GUI import pass. Every
 app download URL in the catalog resolves, TV Bro's included.
+
+## What changed in 1.2.1 (2026-11-17)
+- **Catalog**: `IPTV_PLAYLISTS` gained **Iran (verified)** — the 20-channel list
+  from `../iptv-ir/`, rebuilt and end-to-end verified daily. The existing
+  iptv-org entries stay; they are still the right answer for "everything".
+- **README**: the "If you have lost the remote" section claimed `uiautomator
+  dump` was "usually the faster answer". It is not, against MyTV: the app
+  returns `ERROR: null root node returned by UiTestAutomationBridge` on every
+  retry. Added two worked alternatives — reading the screen with Vision OCR over
+  JXA, and driving MyTV through its own web panel on port 10591 — plus the
+  finding that `input tap` does nothing on this box and `appStartupScreen:
+  "Live"` skips the dashboard entirely.
+
+## IPTV on the box (2026-11-17)
+
+MyTV ("TV Live", `com.github.mytv.android`) is the player. Its web panel on
+`http://192.168.1.45:10591/` is the control surface that matters — `GET
+/api/logs` is the app's structured log and the honest answer to "did this
+work", `GET`/`POST /api/configs` is the 138-setting store.
+
+Verified by the panel's own log, not by eyeballing the TV:
+
+- `加载订阅源（Iran TV (verified)）：1个分组，20个频道` — the source is the
+  `iptv-ir` playlist and 20 channels loaded.
+- `首次启动，选择第一个频道: IRIB TV1` followed by the URL handed to Media3,
+  with `dumpsys SurfaceFlinger` showing `PlayerActivity` and its `SurfaceView`
+  resumed and wlan0 moving ~3.5 Mbit/s. That is playback, not a menu.
+- MyTV's bundled EPG covers **none** of these channels — `加载节目单：0个频道`
+  against 787 loaded — so `epgEnable` is now `false`, removing a download and a
+  parse from every launch.
+- `appStartupScreen` is now `Live`: the app opens straight into IRIB TV1
+  full-screen, so the television remote zaps channels through HDMI-CEC with no
+  app navigation.
 
 ## What changed in 1.2.0 (2026-11-17)
 - **Catalog**: TV Bro moved 2.1.6 → **3.0.5**, and the entry now takes
@@ -92,11 +125,16 @@ Xiaomi Mi Box 4 (`MIBOX4` / `oneday`, Android 9 / SDK 28, `armeabi-v7a`,
 - The box's own firmware: "up to date" as of 2026-11-17. Nothing to do.
 
 ## Adjacent work
+`../iptv-ir/` builds the Iranian playlist this repo's catalog now points at; it
+has its own handoff and is where the TLS and segment-verification lessons live.
 `../MiBox Remote/` holds the separate no-remote control notes and a
 remote-v2-protocol client (`mibox.py`). ADB turned out to be enough, so that
 client was never paired — do not treat it as verified.
 
 ## Next action
-Nothing pending on the code. If the grey poster tiles ever matter enough, the
-patch target is `ChannelPostersProvider.isAllowedCaller` in TV Bro's smali —
-but read the signing-key consequence above first.
+Nothing pending on the code. Two ideas worth a session if the need shows up:
+`do_push_iptv` could set MyTV's source through the panel (`POST /api/configs`)
+instead of pushing a file to `/sdcard/Download/`, which would give the box a
+self-updating URL rather than a frozen copy; and the grey poster tiles could be
+fixed by patching `ChannelPostersProvider.isAllowedCaller` in TV Bro's smali,
+though read the signing-key consequence above first.

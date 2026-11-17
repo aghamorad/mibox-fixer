@@ -182,7 +182,67 @@ Two things that cost real time when driving the box this way:
   brings up Gboard, after which deletes reach the field. Hide it again before
   tapping any button in the lower half of the dialog.
 - `adb exec-out screencap -p` gives you the pixels and `uiautomator dump` gives
-  you the tree. The tree is usually the faster answer.
+  you the tree. The tree is usually the faster answer — but not always: against
+  MyTV it answers `ERROR: null root node returned by UiTestAutomationBridge` and
+  every retry fails the same way, while against a launcher it works first time.
+  Keep `screencap` as the fallback rather than the last resort.
+
+### Reading the screen when `uiautomator` refuses
+
+A screenshot is just pixels until something reads it. macOS can, with no
+install — Vision is reachable from JXA:
+
+```bash
+adb exec-out screencap -p > /tmp/tv.png
+```
+
+```javascript
+ObjC.import('Vision'); ObjC.import('Foundation');
+const url = $.NSURL.fileURLWithPath('/tmp/tv.png');
+const req = $.VNRecognizeTextRequest.alloc.init;
+req.recognitionLevel = 0;              // 0 = accurate, 1 = fast
+const handler = $.VNImageRequestHandler.alloc.initWithURLOptions(url, $());
+handler.performRequestsError($([req]), $());
+for (let i = 0; i < req.results.count; i++)
+  console.log(ObjC.unwrap(req.results.objectAtIndex(i).topCandidates(1).objectAtIndex(0).string));
+```
+
+Run it with `osascript -l JavaScript ocr.js /tmp/tv.png`. Read
+`observation.boundingBox` too (it is normalised with the origin at the bottom
+left, so flip `y`) and you get coordinates, which is what makes the pointer
+question answerable.
+
+`adb shell input tap x y` does **not** work here: the box has no touchscreen and
+the apps ignore synthetic touches. D-pad events do work, but nothing tells you
+where focus is — so take a screenshot, send one key, take another, and diff
+them. The focus ring's repaint is the only thing that changes, which gives you
+its rectangle; match that against the OCR boxes and you know which label you
+just landed on. `input keyevent` numbers: 19 up, 20 down, 21 left, 22 right,
+23 select.
+
+### MyTV's web panel, when the pixels are not enough
+
+MyTV ("TV Live", `com.github.mytv.android`) serves its own control panel on
+**port 10591** — `http://192.168.1.45:10591/` — and it is a far better control
+surface than the D-pad. Two endpoints carry the weight:
+
+- `GET /api/logs` is the app's structured log, and it is the honest answer to
+  "did this work". It reports the loaded source and its channel count
+  (`加载订阅源（Iran TV (verified)）：1个分组，20个频道`), which channel is playing,
+  and the exact URL handed to the player.
+- `GET`/`POST /api/configs` reads and writes all 138 settings (`epgEnable`,
+  `appStartupScreen`, `iptvSourceList`, …). **Post the whole object back** —
+  the panel's own UI does, and a partial body lets the app re-derive the rest.
+  `GET` first, keep a copy, change one key, `POST`.
+
+`appStartupScreen` accepts `Dashboard`, `Live`, `EpgGuide`, `Channels`,
+`Favorites`, `Search`, `MultiView`. `Live` skips the dashboard entirely and
+starts the first channel full-screen; combined with the box's HDMI-CEC the
+television remote then zaps channels with no app navigation at all.
+
+One trap specific to this box: MyTV ships a 787-channel EPG that covers none of
+the Iranian channels — its own log says so, `加载节目单：0个频道` — and it still
+costs a download and a parse on every launch. `epgEnable: false` is the fix.
 
 ## What's in here
 
