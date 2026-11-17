@@ -23,7 +23,7 @@ this tool does is either an app install or a *reversible* `pm disable-user`.
 | Tab | What you get |
 |---|---|
 | **What to remove** | 46 packages you can switch off, grouped by category (streaming bloat, IPTV reseller junk, redundant VPN trials, Google TV ads, telemetry, Mi services). All disabled, never uninstalled. |
-| **What to install** | 12 open-source TV apps, with the correct 32-bit or 64-bit APK picked automatically for your box. |
+| **What to install** | 13 open-source TV apps, with the correct 32-bit or 64-bit APK picked automatically for your box. |
 | **Tweaks** | Faster animations, stay-awake, clear recommendation rows, set the launcher, push an IPTV playlist, set a wallpaper. |
 | **Help** | The exact steps to turn on debugging, plus what this tool will and won't touch. |
 
@@ -121,6 +121,52 @@ python3 -m fixer --host 192.168.1.45 --restore-all
 - Downloading APKs happens directly from each project's official GitHub
   release page. APKs are cached in `~/.cache/mibox-fixer`.
 
+## When an install is refused
+
+**Play Protect says the app is harmful.** Nothing this tool installs is in the
+Play catalogue, and Play Protect blocks what it does not recognise. The APK is
+not the problem; the box is. Allow it once — Play Store → your profile → Play
+Protect → gear icon → turn scanning off — and install again. Or turn the
+verifier off from the terminal:
+
+```bash
+adb shell settings put global package_verifier_enable 0
+```
+
+The tool now says this in plain words instead of leaving you with
+`INSTALL_FAILED_VERIFICATION_FAILURE`, and explains the other common refusals
+(wrong signing key, downgrade, no space) the same way.
+
+**An app's own updater does nothing.** Apps that update themselves need the
+install permission before Android lets them start the installer. The fixer
+grants it for the ones that ship an updater (the Beam launcher does).
+
+## If you have lost the remote
+
+The box is still perfectly drivable. Two ways in, in the order worth trying:
+
+```bash
+adb connect 192.168.1.45:5555        # then press OK on the On-TV prompt
+adb shell input keyevent KEYCODE_HOME
+adb shell input keyevent 20          # DPAD_DOWN; 19/20/21/22/23 = U/D/L/R/OK
+```
+
+Over HDMI-CEC the television's own remote drives the box once *Anynet+*
+(Samsung) is on and the box's CEC is on — no configuration on this side:
+
+```bash
+adb shell dumpsys hdmi_control | head -20    # shows presses arriving from the TV
+```
+
+Two things that cost real time when driving the box this way:
+
+- A full-screen keyboard is not the obstacle you think. When a dialog swallows
+  the delete key, `adb shell settings put secure show_ime_with_hard_keyboard 1`
+  brings up Gboard, after which deletes reach the field. Hide it again before
+  tapping any button in the lower half of the dialog.
+- `adb exec-out screencap -p` gives you the pixels and `uiautomator dump` gives
+  you the tree. The tree is usually the faster answer.
+
 ## What's in here
 
 ```
@@ -151,6 +197,7 @@ respective authors, fetched from their own release pages:
 [Fossify File Manager](https://github.com/FossifyOrg/File-Manager) ·
 [FLauncher](https://github.com/osrosal/flauncher) ·
 [LTvLauncher](https://github.com/leanbitlab-org/LtvLauncher) ·
+[SlamVision](https://github.com/jhatren927-ai/slamvision-tv) ·
 [iptv-org](https://github.com/iptv-org/iptv)
 
 ## License

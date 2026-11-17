@@ -35,6 +35,9 @@ class AppItem:
     component: Optional[str] = None
     arch_assets: dict = field(default_factory=dict)
     default: bool = False
+    # True when the app can update itself from inside the box. Those need the
+    # install permission granted once, or their updater detours through Settings.
+    self_updates: bool = False
 
 
 # ---------------------------------------------------------------------------
@@ -181,6 +184,7 @@ APPS: list[AppItem] = [
         asset="app-release.apk",
         component="com.home.tiles/.MainActivity",
         default=True,
+        self_updates=True,
     ),
     AppItem(
         key="smarttube",
@@ -208,6 +212,11 @@ APPS: list[AppItem] = [
         repo="truefedex/tv-bro",
         version="v2.1.6",
         component="com.phlox.tvwebbrowser/.activity.main.MainActivity",
+        # Do not move these asset names onto a 3.x tag. From 3.0.0 the
+        # geckoIncluded flavour got `applicationIdSuffix = ".gecko"`, so those
+        # APKs install a *second* app (com.phlox.tvwebbrowser.gecko) and leave
+        # the real browser untouched. In 2.1.6 the suffix did not exist yet, so
+        # the armeabi-v7a asset above is the browser itself.
         arch_assets={
             "armeabi-v7a": "tvbro-2.1.6-generic-geckoIncluded-armeabi-v7a.apk",
             "arm64-v8a": "tvbro-2.1.6-generic-geckoIncluded-arm64-v8a.apk",
@@ -350,6 +359,20 @@ APPS: list[AppItem] = [
             "arm64-v8a": "LTvLauncher-arm64-v8a-release.apk",
             "universal": "LTvLauncher-universal-release.apk",
         },
+        default=False,
+    ),
+    AppItem(
+        key="slamvision",
+        title="SlamVision (retro wrestling channels)",
+        package="com.slamvision.tv",
+        detail="Thin wrapper around ring-channel-tv.emergent.host: 24/7 NJPW/WCW/WWF "
+               "and territory-era channels streamed from the Internet Archive, with a "
+               "Prevue-style guide. Nothing else on the box does this.",
+        kind="github",
+        repo="jhatren927-ai/slamvision-tv",
+        version="v1.4.0",
+        asset="SlamVision.apk",
+        component="com.slamvision.tv/.MainActivity",
         default=False,
     ),
 ]

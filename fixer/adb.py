@@ -22,6 +22,35 @@ class AdbError(RuntimeError):
     pass
 
 
+# Play Protect refuses most APKs that are not in the Play catalogue, which is
+# every app this tool installs. The failure looks alarming and says nothing
+# useful, so it is worth spelling out what to do about it.
+PLAY_PROTECT_HINT = (
+    "Play Protect blocked this install (INSTALL_FAILED_VERIFICATION_FAILURE). "
+    "The APK is not the problem -- Play Protect flags any app it does not know. "
+    "Allow it on the box (Play Store > your profile > Play Protect > settings, "
+    "turn scanning off) and install again, or turn the verifier off for the "
+    "install over adb: adb shell settings put global package_verifier_enable 0"
+)
+
+
+def explain_install_failure(text: str) -> str:
+    """Turn a raw adb failure into something the user can act on."""
+    if "INSTALL_FAILED_VERIFICATION_FAILURE" in text:
+        return PLAY_PROTECT_HINT
+    if "INSTALL_FAILED_UPDATE_INCOMPATIBLE" in text:
+        return (
+            "The box already has this app under a different signing key (a Play "
+            "Store or F-Droid build, usually), so it can neither be replaced nor "
+            "installed alongside. Uninstall the copy on the box first."
+        )
+    if "INSTALL_FAILED_VERSION_DOWNGRADE" in text:
+        return "The box already has a newer version of this app."
+    if "INSTALL_FAILED_INSUFFICIENT_STORAGE" in text:
+        return "The box ran out of free space while installing."
+    return text
+
+
 def _default_search_paths() -> list[Path]:
     here = Path(__file__).resolve().parent.parent
     candidates: list[Path] = [
@@ -328,7 +357,19 @@ class Adb:
         except subprocess.TimeoutExpired:
             return False, "timed out"
         text = (out + err).strip()
-        return ("Success" in text), text
+        if "Success" in text:
+            return True, text
+        return False, explain_install_failure(text)
+
+    def allow_install_packages(self, package: str) -> bool:
+        """Let an app launch the installer itself, so its own updater works.
+
+        Apps that ship their own updater (the Beam launcher, for one) cannot
+        start the package installer on Android TV until this is granted.
+        """
+        return self.shell_ok(
+            f"appops set {package} REQUEST_INSTALL_PACKAGES allow"
+        )
 
     def wake(self) -> None:
         self.shell("input keyevent KEYCODE_WAKEUP")

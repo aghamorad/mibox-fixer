@@ -102,6 +102,16 @@ class Fixer:
             ok, detail = self.adb.install(apk)
             if ok:
                 self.report(f"ok     installed {app.title}")
+                if app.self_updates:
+                    if self.adb.allow_install_packages(app.package):
+                        self.report(
+                            f"ok     {app.title} may update itself from the box"
+                        )
+                    else:
+                        self.report(
+                            f"note   could not grant the install permission to "
+                            f"{app.package}; its built-in updater may ask for it"
+                        )
             else:
                 self.report(f"FAIL   install {app.title}: {detail}")
             results.append(Result(ok, f"{app.title}: {'installed' if ok else detail}"))
