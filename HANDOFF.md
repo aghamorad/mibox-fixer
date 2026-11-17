@@ -1,5 +1,25 @@
 # Handoff — Mi Box Fixer
 
+## 2026-11-17 home screen and cleanup audit
+Morad wants a clean, easy Apple TV-like experience, with no unwanted clutter or
+adware. Audit enabled packages and the actual Beam home screen; investigate
+compatible Apple-style alternatives without disrupting TV Bro, IPTV or remote
+control. Keep changes reversible, preserve app data and avoid broad debloating.
+Box is Android 9/32-bit. Hume Launcher 7.8 installed from its official release
+and set as default; Beam remains enabled for recovery. Hume's recommendations,
+news, weather, and presentation mode are off. Dock starts TV Bro, TV Live,
+SlamVision, SmartTube and VLC. TV Bro cold launch reached the Download-e Rooz
+login page; its separate Beam bookmark tile is not available on Hume. The TV Live
+worldwide configuration was not changed. Play Protect remains enabled. Many
+advertising/telemetry and reseller packages were already disabled; enabled
+third-party apps include multiple browsers, file managers, VPNs and casting
+apps, whose use or adware status has not been established. None were removed.
+Storage was 795 MB free before Hume installation. Home resolution and D-pad
+navigation were checked via ADB; physical Samsung remote and reboot untested.
+The fixer's existing Set Home action still defaults to Beam: do not run it if
+Hume should remain default. Restore Beam with `adb shell cmd package
+set-home-activity com.home.tiles/.MainActivity`.
+
 ## 2026-11-17 correction — worldwide IPTV
 Morad explicitly wants the complete Free-TV/IPTV worldwide playlist, not an
 Iran-only service or a separate iptv-ir project. Consolidate configuration and

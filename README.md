@@ -35,6 +35,11 @@ the fixer's playlist option instead copies a snapshot to the box. Availability
 varies by channel, location and streaming provider. The optional iptv-org lists
 remain available in the playlist selector.
 
+Hume Launcher is available as an optional Apple TV-style alternative to Beam.
+The existing "set home" action still selects Beam; switching to Hume requires
+selecting it as the system home separately. Hume does not show Beam's TV Bro
+bookmark row, but TV Bro can still open its configured home page.
+
 Tested end to end against a real **Mi Box 4**: the recommended profile applied
 cleanly **57/57 steps, 0 failures**.
 

@@ -173,6 +173,18 @@ BLOAT_BY_PACKAGE = {b.package: b for b in BLOAT}
 
 APPS: list[AppItem] = [
     AppItem(
+        key="hume",
+        title="Hume launcher (Apple TV-style)",
+        package="com.petrobot.hume",
+        detail="Apple TV-inspired home screen with an adjustable app dock.",
+        kind="github",
+        repo="petrobot-admin/hume-launcher",
+        version="v7.8",
+        asset="HumeLauncher-7.8.apk",
+        component="com.petrobot.hume/.MainActivity",
+        default=False,
+    ),
+    AppItem(
         key="beam",
         title="Beam launcher",
         package="com.home.tiles",
