@@ -16,8 +16,8 @@ generates `playlists/world.m3u` from Free-TV, prepending four tested candidates
 in Top Picks; GitHub Actions refreshes it daily. Stream checks were from the Mac,
 not a guarantee of playback on the box. The first three picks were published,
 selected on the box, and MyTV logged 98 groups and 2,203 parsed channels. The
-fourth pick (Magnificent Movies) passed an end-to-end Mac stream check and is
-being published; the box may cache the previous playlist for an hour. Actual
+fourth pick (Magnificent Movies) passed an end-to-end Mac stream check and was
+published at 59b6dbd; the box may cache the previous playlist for an hour. Actual
 playback on the box and installation on a fresh second Mi Box remain unverified.
 CI passed for commit b234f56. Prior config backup: /tmp/mytv-world-before-picks.json.
 
