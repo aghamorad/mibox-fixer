@@ -58,6 +58,29 @@ device with `pm list packages`, not copied from a forum.
 
 ## Install
 
+### Recreate this setup on another Mi Box
+
+Download and extract this repository, install Python 3.9+ and Android platform
+tools (`adb`), and enable USB/network debugging on the TV. On a Mac, double-click
+`Install MiBox.command`; on any supported computer run
+`python3 setup_mibox.py --serial BOX_IP:5555`. Accept the TV's debugging and
+TV Live first-run prompts. The installer installs missing Hume, TV Bro, TV Live,
+SlamVision and SmartTube apps, adds **Top Picks + Worldwide** to TV Live without
+removing existing sources, and selects Hume as the launcher. It does not remove
+apps, bypass Play Protect, or copy accounts. Downloads require internet access.
+
+Finish Hume's first-run setup and choose your dock order on the TV. In TV Bro,
+manually set `https://kristina.orson-welles.net/` as the home page and add the
+**Download-e Rooz** bookmark. These personal settings are not yet transferred
+automatically. This installer has not yet been tested on a second clean box.
+
+The first playlist group, **Top Picks**, contains Dry Bar Comedy, 30A TV Classic
+Movies and Al Jazeera English, followed by the complete Free-TV worldwide list,
+including Iran. The picks were checked from the original network, not guaranteed
+on every TV or in every region; other streams can go offline or be geo-blocked.
+SlamVision provides a separate wrestling app, not a guarantee of live PPVs or
+premium channels such as TCM. The playlist refreshes daily in this repository.
+
 Requires **Python 3.9+** (tkinter is included with the python.org and Homebrew
 builds; on Debian/Ubuntu install `python3-tk`) and **adb**.
 

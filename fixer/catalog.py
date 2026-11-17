@@ -173,6 +173,17 @@ BLOAT_BY_PACKAGE = {b.package: b for b in BLOAT}
 
 APPS: list[AppItem] = [
     AppItem(
+        key="mytv",
+        title="TV Live (MyTV)",
+        package="com.github.mytv.android",
+        detail="TV-friendly IPTV player with a web configuration panel.",
+        kind="github",
+        repo="mytv-android/mytv-android",
+        version="V2.2.0.219",
+        asset="mytv-android-tv-2.2.0.219-all-sdk23-original.apk",
+        component="com.github.mytv.android/top.yogiczy.mytv.tv.MainActivity",
+    ),
+    AppItem(
         key="hume",
         title="Hume launcher (Apple TV-style)",
         package="com.petrobot.hume",

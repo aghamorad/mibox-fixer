@@ -1,5 +1,22 @@
 # Handoff — Mi Box Fixer
 
+## 2026-11-17 personalized TV and portable setup — in progress
+Prioritize comedy, classic films, wrestling and independent/non-establishment
+news while retaining the full Free-TV worldwide list including Iran. User also
+wants an easy installable setup for another Mi Box, consolidated in this repo.
+Do not promise premium PPVs or TCM without a verified licensed source. Current
+MyTV favorites are empty; 2,200 worldwide channels loaded previously. Inspect
+how MyTV stores favorites and configure with verified, reachable choices.
+Develop a repeatable setup and distinguish automatic steps from on-device steps.
+The portable setup is `setup_mibox.py` and `Install MiBox.command`; it installs
+missing apps without removing existing ones, appends a source, backs up MyTV
+settings privately, and sets Hume. Hume onboarding and TV Bro homepage/bookmark
+remain manual; no second-box test has been performed. `build_world_playlist.py`
+generates `playlists/world.m3u` from Free-TV, prepending three tested candidates
+in Top Picks; GitHub Actions refreshes it daily. Stream checks were from the Mac,
+not a guarantee of playback on the box. Next: publish, point the box to the new
+playlist, and verify source loading and playback; disclose any limitations.
+
 ## 2026-11-17 home screen and cleanup audit
 Morad wants a clean, easy Apple TV-like experience, with no unwanted clutter or
 adware. Audit enabled packages and the actual Beam home screen; investigate

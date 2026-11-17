@@ -8,5 +8,6 @@ dist/
 .DS_Store
 *.apk
 *.m3u
+!playlists/world.m3u
 *.log
 .pytest_cache/

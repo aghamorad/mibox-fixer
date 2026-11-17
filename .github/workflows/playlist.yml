@@ -1,0 +1,22 @@
+name: Refresh worldwide playlist
+on:
+  schedule:
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 build_world_playlist.py
+      - name: Publish updates
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add playlists/world.m3u
+          if ! git diff --cached --quiet; then
+            git commit -m 'Refresh worldwide playlist'
+            git push
+          fi
