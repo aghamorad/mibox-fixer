@@ -12,7 +12,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        # ubuntu-latest moved to 26.04, which has no Python 3.9 build, so the
+        # oldest interpreter under test is pinned to the last Ubuntu that ships it.
+        os: [ubuntu-22.04, macos-latest, windows-latest]
         python: ["3.9", "3.12"]
     steps:
       - uses: actions/checkout@v4
