@@ -76,6 +76,19 @@ class AssetSelection(unittest.TestCase):
         chosen = pick_asset(app, ["armeabi-v7a", "armeabi"])
         self.assertIn("armv7", chosen)
 
+    def test_tvbro_never_ships_the_gecko_second_app(self):
+        """A geckoIncluded asset installs com.phlox.tvwebbrowser.gecko instead."""
+        app = catalog.APPS_BY_KEY["tvbro"]
+        for abis in (["armeabi-v7a", "armeabi"], ["arm64-v8a", "armeabi-v7a"], []):
+            with self.subTest(abis=abis):
+                chosen = pick_asset(app, abis)
+                self.assertNotIn("geckoIncluded", chosen)
+                self.assertIn("geckoExcluded", chosen)
+
+    def test_tvbro_asset_matches_the_pinned_tag(self):
+        app = catalog.APPS_BY_KEY["tvbro"]
+        self.assertIn(app.version.lstrip("v"), pick_asset(app, ["armeabi-v7a"]))
+
     def test_url_uses_the_release_tag(self):
         app = catalog.APPS_BY_KEY["beam"]
         url, name = resolve_url(app, ["armeabi-v7a"])

@@ -6,8 +6,30 @@ into a clean, fast media player over ADB: disable the junk, install the good
 apps, apply the tweaks.
 
 ## Current state
-Version 1.1.0. Tests, the CLI smoke test and the GUI import all pass. Every
-app download URL in the catalog resolves.
+Version 1.2.0. 28 tests pass, the CLI smoke test and the GUI import pass. Every
+app download URL in the catalog resolves, TV Bro's included.
+
+## What changed in 1.2.0 (2026-11-17)
+- **Catalog**: TV Bro moved 2.1.6 → **3.0.5**, and the entry now takes
+  `tvbro-3.0.5-generic-geckoExcluded.apk` as a single `asset` instead of an
+  `arch_assets` map. The old entry's comment ("stay on 2.1.6") was the wrong
+  conclusion from a correct observation: on 3.x `geckoIncluded` carries
+  `applicationIdSuffix = ".gecko"` and installs a *second* app, but
+  `geckoExcluded` is the real browser, is arch-independent, and upgrades a
+  2.1.6 install in place with bookmarks and settings intact. Verified on the
+  box: 3.0.5 runs, home page and bookmarks survived.
+- **adb.py**: new `Adb.install_past_play_protect()`. Reads
+  `package_verifier_enable`, sets it to `0`, installs, and restores the previous
+  value in a `finally` — including when the install fails. An unset/`null`
+  value restores to `1`, and a box that already had it off keeps it off.
+- **tasks.py**: `do_install` retries once through
+  `install_past_play_protect()` when the first attempt comes back as the Play
+  Protect hint, so a sideload no longer needs a manual detour.
+- **tests**: `test_catalog` now asserts the TV Bro asset is never a
+  `geckoIncluded` one and that it matches the pinned tag;
+  `test_install_errors` covers the verifier off/restore cycle with a fake Adb.
+- **README**: new "TV Bro: take the `geckoExcluded` build" section; the Play
+  Protect section now says the tool restores the setting itself.
 
 ## What changed in 1.1.0 (2026-11-17)
 - **Catalog**: added **SlamVision** (`com.slamvision.tv`, `jhatren927-ai/slamvision-tv`
@@ -38,16 +60,35 @@ Xiaomi Mi Box 4 (`MIBOX4` / `oneday`, Android 9 / SDK 28, `armeabi-v7a`,
   `appops set com.home.tiles REQUEST_INSTALL_PACKAGES allow` first. That is the
   observation the `self_updates` flag encodes.
 - TV Bro 2.1.6 → 3.0.5 was refused by Play Protect with
-  `INSTALL_FAILED_VERIFICATION_FAILURE`. Deliberately not worked around; that
-  is a security setting and needs Morad's approval. Removing the mis-installed
-  `com.phlox.tvwebbrowser.gecko` was the other half of that detour.
+  `INSTALL_FAILED_VERIFICATION_FAILURE`. Morad approved the workaround;
+  `package_verifier_enable 0` → install → back to `1` (confirmed restored).
+  Removing the mis-installed `com.phlox.tvwebbrowser.gecko` was the other half
+  of that detour.
+- TV Bro's **Android TV home screen → Bookmarks row** works with Beam 1.0.2:
+  the channel publishes 9 programs and Beam reports `Cards: 9`. Two things
+  needed doing that are not obvious from either project's docs:
+  - Beam must be **force-stopped** before it re-reads a channel whose programs
+    changed; a plain relaunch shows the old row.
+  - The row's own setting is `Bookmarks in the row`, defaulting to *Home page
+    bookmarks* — TV Bro's eight stock demo bookmarks. Set it to **All
+    bookmarks** or to a folder, or the user's own bookmark never appears.
+- Beam's `Channel rows` panel (Appearance → Channel rows) is the fastest way to
+  see what Beam actually reads: it prints `Cards: N` per channel.
 
 ## Open
-- Whether to bypass Play Protect to move TV Bro to 3.0.5. The upside is the
-  3.x *Home screen → Bookmarks row* channel, which pins a bookmark to the Mi Box
-  home screen. Note the 3.x `geckoExcluded` asset is only ~3.6 MB and drops the
-  bundled Gecko engine (WebView only), so this is a behaviour change, not a
-  straight upgrade.
+- **TV Bro channel posters never load in Beam.** `ChannelPostersProvider`
+  (`isAllowedCaller`) only serves the app itself, the system uid, or apps
+  flagged `FLAG_SYSTEM`. Beam is a sideloaded third-party launcher, so every
+  poster request throws `SecurityException: Not allowed` and the tiles render
+  as flat grey boxes with just their titles. Fixing it means patching and
+  re-signing TV Bro, which changes the signing key and therefore forces an
+  uninstall — losing bookmarks and settings. Not worth it for artwork; left
+  documented instead.
+- Bookmark tiles appear in provider insertion order, so a bookmark added after
+  the row was first published lands at the far right. TV Bro publishes a
+  `COLUMN_WEIGHT` but Beam passes no sort order and the provider ignores it.
+  Reordering means deleting and republishing the channel, which risks losing
+  the system's browsable approval.
 - The box's own firmware: "up to date" as of 2026-11-17. Nothing to do.
 
 ## Adjacent work
@@ -56,5 +97,6 @@ remote-v2-protocol client (`mibox.py`). ADB turned out to be enough, so that
 client was never paired — do not treat it as verified.
 
 ## Next action
-Nothing pending on the code. Ask Morad about the Play Protect call before
-changing any TV Bro asset in the catalog.
+Nothing pending on the code. If the grey poster tiles ever matter enough, the
+patch target is `ChannelPostersProvider.isAllowedCaller` in TV Bro's smali —
+but read the signing-key consequence above first.

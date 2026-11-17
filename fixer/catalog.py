@@ -210,18 +210,20 @@ APPS: list[AppItem] = [
         detail="A real browser you can drive with a D-pad remote.",
         kind="github",
         repo="truefedex/tv-bro",
-        version="v2.1.6",
+        version="v3.0.5",
         component="com.phlox.tvwebbrowser/.activity.main.MainActivity",
-        # Do not move these asset names onto a 3.x tag. From 3.0.0 the
-        # geckoIncluded flavour got `applicationIdSuffix = ".gecko"`, so those
-        # APKs install a *second* app (com.phlox.tvwebbrowser.gecko) and leave
-        # the real browser untouched. In 2.1.6 the suffix did not exist yet, so
-        # the armeabi-v7a asset above is the browser itself.
-        arch_assets={
-            "armeabi-v7a": "tvbro-2.1.6-generic-geckoIncluded-armeabi-v7a.apk",
-            "arm64-v8a": "tvbro-2.1.6-generic-geckoIncluded-arm64-v8a.apk",
-            "universal": "tvbro-2.1.6-generic-geckoExcluded.apk",
-        },
+        # Take the geckoExcluded build, never a geckoIncluded one. From 3.0.0
+        # the geckoIncluded flavour carries `applicationIdSuffix = ".gecko"`,
+        # so those APKs install a *second* app (com.phlox.tvwebbrowser.gecko)
+        # and leave the real browser exactly as it was. In 2.1.6 the suffix did
+        # not exist yet, which is why the old entry could use geckoIncluded.
+        #
+        # geckoExcluded is WebView-only and arch-independent, so one asset
+        # covers every box: ~3.6 MB instead of ~149 MB. The bundled Gecko
+        # engine is gone, so pages render with the system WebView; on the Mi
+        # Box 4 (Android 9) that is fine, and it upgrades an existing 2.1.6
+        # install in place, keeping bookmarks and settings.
+        asset="tvbro-3.0.5-generic-geckoExcluded.apk",
         default=True,
     ),
     AppItem(

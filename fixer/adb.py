@@ -33,6 +33,10 @@ PLAY_PROTECT_HINT = (
     "install over adb: adb shell settings put global package_verifier_enable 0"
 )
 
+# The verifier setting is global and permanent, so leaving it off would quietly
+# weaken every later install on the box. Remember what it was and put it back.
+VERIFIER_SETTING = "package_verifier_enable"
+
 
 def explain_install_failure(text: str) -> str:
     """Turn a raw adb failure into something the user can act on."""
@@ -370,6 +374,32 @@ class Adb:
         return self.shell_ok(
             f"appops set {package} REQUEST_INSTALL_PACKAGES allow"
         )
+
+    def install_past_play_protect(
+        self, apk: Path, *, reinstall: bool = True, downgrade: bool = True
+    ) -> tuple[bool, str]:
+        """Install with the package verifier off, then restore the old setting.
+
+        Play Protect rejects sideloaded APKs with
+        INSTALL_FAILED_VERIFICATION_FAILURE before the installer ever looks at
+        the file. Turning `package_verifier_enable` off for the length of one
+        install gets past it; the previous value goes back in a `finally`, so a
+        failed or interrupted install cannot leave the box unprotected.
+        """
+        previous = ""
+        try:
+            previous = self.get_setting("global", VERIFIER_SETTING)
+        except (AdbError, subprocess.TimeoutExpired):
+            pass
+        self.shell(f"settings put global {VERIFIER_SETTING} 0")
+        try:
+            return self.install(apk, reinstall=reinstall, downgrade=downgrade)
+        finally:
+            restore = previous if previous in {"0", "1"} else "1"
+            try:
+                self.shell(f"settings put global {VERIFIER_SETTING} {restore}")
+            except (AdbError, subprocess.TimeoutExpired):
+                pass
 
     def wake(self) -> None:
         self.shell("input keyevent KEYCODE_WAKEUP")

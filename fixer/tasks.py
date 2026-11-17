@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Callable, Iterable, Optional
 
 from . import catalog
-from .adb import Adb
+from .adb import PLAY_PROTECT_HINT, Adb
 from .downloader import fetch_apk, human_size
 
 
@@ -100,6 +100,11 @@ class Fixer:
 
             self.report(f"    got {apk.name} ({human_size(apk.stat().st_size)})")
             ok, detail = self.adb.install(apk)
+            if not ok and detail == PLAY_PROTECT_HINT:
+                # Play Protect refused it before the installer read the file.
+                # Retry once with the verifier off, then put the setting back.
+                self.report("note   Play Protect refused it; retrying with the verifier off")
+                ok, detail = self.adb.install_past_play_protect(apk)
             if ok:
                 self.report(f"ok     installed {app.title}")
                 if app.self_updates:

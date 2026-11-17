@@ -135,11 +135,28 @@ adb shell settings put global package_verifier_enable 0
 
 The tool now says this in plain words instead of leaving you with
 `INSTALL_FAILED_VERIFICATION_FAILURE`, and explains the other common refusals
-(wrong signing key, downgrade, no space) the same way.
+(wrong signing key, downgrade, no space) the same way. It also retries the
+install itself with the verifier off and puts the setting back afterwards, so
+you do not have to leave the box with scanning permanently disabled — a
+`package_verifier_enable 0` left behind weakens every later install.
 
 **An app's own updater does nothing.** Apps that update themselves need the
 install permission before Android lets them start the installer. The fixer
 grants it for the ones that ship an updater (the Beam launcher does).
+
+## TV Bro: take the `geckoExcluded` build
+
+TV Bro ships two flavours, and on 3.x the names are a trap. The
+`geckoIncluded` APKs carry `applicationIdSuffix = ".gecko"`, so they install a
+**second, separate app** (`com.phlox.tvwebbrowser.gecko`) and leave the browser
+you already have untouched — it looks like the install worked and nothing
+changed. The fixer therefore always takes
+`tvbro-<version>-generic-geckoExcluded.apk`.
+
+That build is WebView-only and architecture-independent: about 3.6 MB instead
+of ~149 MB, and it upgrades an existing 2.1.6 install in place, keeping
+bookmarks and settings. The trade-off is that the bundled Gecko engine is gone
+and pages render with the system WebView, which is fine on Android 9.
 
 ## If you have lost the remote
 
