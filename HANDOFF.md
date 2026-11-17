@@ -12,10 +12,14 @@ The portable setup is `setup_mibox.py` and `Install MiBox.command`; it installs
 missing apps without removing existing ones, appends a source, backs up MyTV
 settings privately, and sets Hume. Hume onboarding and TV Bro homepage/bookmark
 remain manual; no second-box test has been performed. `build_world_playlist.py`
-generates `playlists/world.m3u` from Free-TV, prepending three tested candidates
+generates `playlists/world.m3u` from Free-TV, prepending four tested candidates
 in Top Picks; GitHub Actions refreshes it daily. Stream checks were from the Mac,
-not a guarantee of playback on the box. Next: publish, point the box to the new
-playlist, and verify source loading and playback; disclose any limitations.
+not a guarantee of playback on the box. The first three picks were published,
+selected on the box, and MyTV logged 98 groups and 2,203 parsed channels. The
+fourth pick (Magnificent Movies) passed an end-to-end Mac stream check and is
+being published; the box may cache the previous playlist for an hour. Actual
+playback on the box and installation on a fresh second Mi Box remain unverified.
+CI passed for commit b234f56. Prior config backup: /tmp/mytv-world-before-picks.json.
 
 ## 2026-11-17 home screen and cleanup audit
 Morad wants a clean, easy Apple TV-like experience, with no unwanted clutter or

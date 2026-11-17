@@ -8,6 +8,7 @@ OUTPUT = Path(__file__).parent / "playlists" / "world.m3u"
 FAVORITES = [
     ("Dry Bar Comedy", "https://drybar-drybarcomedy-1-us.samsung.wurl.tv/playlist.m3u8"),
     ("30A TV Classic Movies", "https://30a-tv.com/feeds/pzaz/30atvmovies.m3u8"),
+    ("Magnificent Movies", "https://mmn1.b-cdn.net/hls/MMN-HLS.m3u8"),
     ("Al Jazeera English", "https://live-hls-apps-aje-fa.getaj.net/AJE/index.m3u8"),
 ]
 

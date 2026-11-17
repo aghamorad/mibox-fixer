@@ -75,7 +75,7 @@ manually set `https://kristina.orson-welles.net/` as the home page and add the
 automatically. This installer has not yet been tested on a second clean box.
 
 The first playlist group, **Top Picks**, contains Dry Bar Comedy, 30A TV Classic
-Movies and Al Jazeera English, followed by the complete Free-TV worldwide list,
+Movies, Magnificent Movies and Al Jazeera English, followed by the complete Free-TV worldwide list,
 including Iran. The picks were checked from the original network, not guaranteed
 on every TV or in every region; other streams can go offline or be geo-blocked.
 SlamVision provides a separate wrestling app, not a guarantee of live PPVs or
