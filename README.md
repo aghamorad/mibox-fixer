@@ -29,6 +29,12 @@ this tool does is either an app install or a *reversible* `pm disable-user`.
 
 Everything is also available headless (see *Terminal use* below).
 
+The default IPTV playlist is Free-TV/IPTV's worldwide list, organized into
+country and topic groups. MyTV can use its upstream URL directly for updates;
+the fixer's playlist option instead copies a snapshot to the box. Availability
+varies by channel, location and streaming provider. The optional iptv-org lists
+remain available in the playlist selector.
+
 Tested end to end against a real **Mi Box 4**: the recommended profile applied
 cleanly **57/57 steps, 0 failures**.
 
@@ -226,10 +232,8 @@ MyTV ("TV Live", `com.github.mytv.android`) serves its own control panel on
 **port 10591** — `http://192.168.1.45:10591/` — and it is a far better control
 surface than the D-pad. Two endpoints carry the weight:
 
-- `GET /api/logs` is the app's structured log, and it is the honest answer to
-  "did this work". It reports the loaded source and its channel count
-  (`加载订阅源（Iran TV (verified)）：1个分组，20个频道`), which channel is playing,
-  and the exact URL handed to the player.
+- `GET /api/logs` is the app's structured log. It reports the loaded source,
+  group and channel counts, the playing channel, and the URL sent to the player.
 - `GET`/`POST /api/configs` reads and writes all 138 settings (`epgEnable`,
   `appStartupScreen`, `iptvSourceList`, …). **Post the whole object back** —
   the panel's own UI does, and a partial body lets the app re-derive the rest.
@@ -240,9 +244,9 @@ surface than the D-pad. Two endpoints carry the weight:
 starts the first channel full-screen; combined with the box's HDMI-CEC the
 television remote then zaps channels with no app navigation at all.
 
-One trap specific to this box: MyTV ships a 787-channel EPG that covers none of
-the Iranian channels — its own log says so, `加载节目单：0个频道` — and it still
-costs a download and a parse on every launch. `epgEnable: false` is the fix.
+On this box the bundled EPG was disabled after it matched none of the previous
+Iran-only playlist. Programme-guide coverage for the worldwide list has not
+been verified; it may be enabled and configured separately if wanted.
 
 ## What's in here
 

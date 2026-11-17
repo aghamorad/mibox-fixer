@@ -1,5 +1,20 @@
 # Handoff — Mi Box Fixer
 
+## 2026-11-17 correction — worldwide IPTV
+Morad explicitly wants the complete Free-TV/IPTV worldwide playlist, not an
+Iran-only service or a separate iptv-ir project. Consolidate configuration and
+documentation here. Preserve existing device configuration and do not delete
+the separate repository. Verify actual loading and representative playback;
+individual upstream channels may be unavailable or geographically restricted.
+MyTV now selects `https://raw.githubusercontent.com/Free-TV/IPTV/master/playlist.m3u8`
+directly, and its log reports 97 groups and 2,200 channels versus 2,203 entries
+in the downloaded source. Startup is set to Channels; screen OCR confirms country
+groups appear. Catalog defaults to that worldwide source; iptv-org remains an
+option. EPG is still disabled and coverage has not been assessed for worldwide.
+The old Iran-only settings and claims below are historical and superseded.
+Individual channel playback, the three missing entries, and EPG coverage remain
+unverified; upstream geo-blocking and stream failures may affect availability.
+
 ## Objective
 One repeatable tool that turns a stock Xiaomi Mi Box (or any Android TV box)
 into a clean, fast media player over ADB: disable the junk, install the good

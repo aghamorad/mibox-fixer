@@ -393,10 +393,8 @@ ANIMATION_KEYS = [
 ]
 
 IPTV_PLAYLISTS = {
-    "All channels": "https://iptv-org.github.io/iptv/index.m3u",
-    # 20 Iranian channels, rebuilt and end-to-end verified daily; see
-    # https://github.com/aghamorad/iptv-ir for why the upstream list needs it.
-    "Iran (verified)": "https://raw.githubusercontent.com/aghamorad/iptv-ir/main/ir.m3u",
+    "All channels": "https://raw.githubusercontent.com/Free-TV/IPTV/master/playlist.m3u8",
+    "All channels (iptv-org)": "https://iptv-org.github.io/iptv/index.m3u",
     "Iran": "https://iptv-org.github.io/iptv/countries/ir.m3u",
     "Persian (by language)": "https://iptv-org.github.io/iptv/languages/fas.m3u",
     "English (by language)": "https://iptv-org.github.io/iptv/languages/eng.m3u",
