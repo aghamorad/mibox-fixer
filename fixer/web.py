@@ -105,9 +105,16 @@ class MoBoxWebState:
                     adb.serial = ready[0].serial
                 else:
                     boxes = discover_miboxes()
+                    connected = False
                     for b in boxes:
                         if b.has_adb and adb.connect(b.ip):
+                            connected = True
                             break
+                    if not connected:
+                        from .discover import _arp_candidates
+                        for ip in _arp_candidates():
+                            if adb.connect(ip, timeout=4):
+                                break
             if adb.serial:
                 fw = inspect_firmware(adb)
                 with self.lock:

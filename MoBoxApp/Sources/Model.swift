@@ -109,8 +109,25 @@ final class AppModel: ObservableObject {
         "http://127.0.0.1:\(serverPort)"
     }
 
+    private static func isPortOpen(_ port: UInt16) -> Bool {
+        let fd = socket(AF_INET, SOCK_STREAM, 0)
+        guard fd >= 0 else { return false }
+        defer { close(fd) }
+        var addr = sockaddr_in()
+        addr.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
+        addr.sin_family = sa_family_t(AF_INET)
+        addr.sin_port = port.bigEndian
+        addr.sin_addr.s_addr = inet_addr("127.0.0.1")
+        let res = withUnsafePointer(to: &addr) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                connect(fd, $0, socklen_t(MemoryLayout<sockaddr_in>.size))
+            }
+        }
+        return res == 0
+    }
+
     func startBackendIfNeeded() {
-        if serverProcess?.isRunning == true { return }
+        if serverProcess?.isRunning == true || Self.isPortOpen(UInt16(serverPort)) { return }
         let resURL = Bundle.main.resourceURL
         let bundledRoot = resURL?.appendingPathComponent("engine")
         let devRoot = URL(fileURLWithPath: "/Users/Morad/C3PO/Tools/mibox-fixer")
