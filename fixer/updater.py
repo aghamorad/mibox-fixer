@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -34,6 +35,9 @@ class UpdateStatus:
 
 
 def get_local_commit(repo_root: Path = REPO_ROOT) -> str:
+    env_sha = os.environ.get("MOBOX_BUILD_COMMIT", "").strip()
+    if env_sha and env_sha != "unknown":
+        return env_sha
     try:
         proc = subprocess.run(
             ["git", "-C", str(repo_root), "rev-parse", "HEAD"],

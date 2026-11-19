@@ -58,7 +58,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         )
         window.title = "MoBox"
         window.contentViewController = controller
-        window.minSize = NSSize(width: 880, height: 580)
+        controller.view.additionalSafeAreaInsets =
+            NSEdgeInsets(top: 46, left: 0, bottom: 0, right: 0)
+        window.minSize = NSSize(width: 900, height: 620)
         window.setFrameAutosaveName("MoBoxMainWindow")
         window.center()
         window.delegate = self

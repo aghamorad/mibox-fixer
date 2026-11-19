@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import concurrent.futures
+import os
 import re
 import socket
 import subprocess
@@ -102,9 +103,10 @@ class FirmwareReport:
 def _arp_candidates() -> list[str]:
     """Read private IPv4 addresses already seen on the local network."""
     ips: list[str] = []
+    arp_bin = "/usr/sbin/arp" if os.path.exists("/usr/sbin/arp") else "arp"
     try:
         proc = subprocess.run(
-            ["arp", "-an"],
+            [arp_bin, "-an"],
             capture_output=True,
             text=True,
             timeout=3,

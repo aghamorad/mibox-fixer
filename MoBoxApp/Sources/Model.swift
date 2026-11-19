@@ -126,8 +126,9 @@ final class AppModel: ObservableObject {
         proc.currentDirectoryURL = engineRoot
         proc.arguments = ["-m", "fixer.web", "--port", "\(serverPort)"]
         var env = ProcessInfo.processInfo.environment
-        let extraPath = "/opt/homebrew/bin:/usr/local/bin:" + (env["PATH"] ?? "/usr/bin:/bin")
+        let extraPath = "/opt/homebrew/bin:/usr/local/bin:/usr/sbin:/sbin:" + (env["PATH"] ?? "/usr/bin:/bin")
         env["PATH"] = extraPath
+        env["MOBOX_BUILD_COMMIT"] = Bundle.main.infoDictionary?["MoBoxBuildCommit"] as? String ?? "local"
         proc.environment = env
         proc.standardOutput = Pipe()
         proc.standardError = Pipe()
