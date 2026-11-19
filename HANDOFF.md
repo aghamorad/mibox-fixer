@@ -1,5 +1,17 @@
 # Handoff — Mi Box Fixer (MoBox)
 
+## 2026-11-19 Standalone Android APKs (`MoBox.apk` & `ZLT-X28.apk`) + 1-Click GitHub Family Download Portal — completed
+Built zero-Gradle, signed Android 7.0+ (`minSdkVersion 24`) APKs for both **MoBox** and **ZLT X28**, plus a 1-click download portal in `docs/` and top-of-README download tables so Dad or family in Iran can install and run everything directly on an Android phone or Mi Box with zero Mac/PC required:
+- **`AndroidApp/` → `docs/downloads/MoBox.apk` (`com.morad.mobox`, 49 KB)**:
+  - Runs on **both** a Mi Box / Android TV (includes Leanback TV launcher banner + D-pad focus rings) **and** any spare Android phone.
+  - Auto-detects 32-bit (`armeabi-v7a`) vs 64-bit (`arm64-v8a`), downloads & queues missing MoBox apps (`Hume Launcher 7.8`, `TV Live`, `SmartTube`, `TV Bro 3.0.5 geckoExcluded`, `SlamVision`, `MATVT`, `Aerial Views 4K Space & Nature`) via Android's `PackageInstaller.Session`, programs `TV Live` (`:10591/api/configs`) with `Top Picks + Worldwide` either locally (`127.0.0.1:10591`) or over Wi-Fi from an Android phone (auto-scanning the Wi-Fi subnet for `:10591`/`:5555`/`:6466`), opens Android TV's exact Screensaver / Home / Accessibility / Bluetooth settings, and includes a built-in **1-Tap ZLT X28 Router Fixer** (`192.168.70.1` SHA-256 challenge login + `cmd 248` `mcinet` APN + `cmd 222` auto-dial + `cmd 161` band unlock).
+  - Verified live on Morad's Mi Box 4 (`192.168.0.117:5555`, `pm install -r` → `Success`, `package:com.morad.mobox`).
+- **`/Users/Morad/.gemini/antigravity/scratch/zlt-x28/AndroidApp/` → `ZLT-X28.apk` (`com.morad.zltx28`, 21 KB)**:
+  - Dedicated standalone Android phone app for the ZLT X28 5G router (`192.168.70.1`) with Simple (75) 1-tap connection repair (`mcinet` APN + Auto-Dial + band unlock), live SIM/signal readings, and Advanced (35) LTE Band 3 / Band 3+7 lock and router restart.
+  - Published in both `aghamorad/zlt-x28` (`AndroidApp/ZLT-X28.apk`) and `aghamorad/mibox-fixer` (`docs/downloads/ZLT-X28.apk`).
+- **`docs/index.html` & `README.md` 1-Click Download Portal**:
+  - Auto-detects Android TV, Android Phone, or macOS and highlights the matching 1-click download (`MoBox.apk`, `ZLT-X28.apk`, `MoBox-Mac-universal.zip`, `ZLT-X28-v1.2.0-universal.zip`).
+
 ## 2026-11-19 Native macOS `MoBox.app` + Phone-Side Web App + Paul Rand Liquid-Glass Icon — completed
 Built and installed the native universal macOS application **`/Applications/MoBox.app`** (`arm64` + `x86_64`, modelled on `ZLT X28.app`), the mobile-first **Phone & Browser Web App** (`http://192.168.0.195:8765`, `fixer/web.py` + `web/index.html`), and a custom **Paul Rand mid-century geometric retro + Liquid Glass app icon** (`MoBoxApp/make_icon.py` → `AppIcon.icns` & `icon-preview.png`):
 - **Paul Rand + Liquid Glass Icon (`MoBoxApp/make_icon.py`)**: Full-bleed midnight-charcoal canvas, asymmetric Paul Rand vermilion-orange TV cabinet (`#EA4A28`), Bauhaus gold & electric cyan rabbit-ear antenna spheres, geometric `"Mo"` monogram inside the CRT screen, and a translucent Apple tvOS 26 Liquid Glass dock pill & specular glass refraction sheen.

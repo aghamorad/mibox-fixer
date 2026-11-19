@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MoBox &amp; ZLT X28 — One-Click Setup for Android, Mi Box &amp; Mac</title>
+  <link rel="icon" type="image/png" href="mobox-icon.png" />
+  <style>
+    :root {
+      --bg: #0D0F14;
+      --surface: #151922;
+      --surface-hi: #1C212D;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-hi: rgba(255, 255, 255, 0.18);
+      --text: #F4F1EA;
+      --muted: #949DB0;
+      --faint: #5E677A;
+      --vermilion: #E84A27;
+      --gold: #E5A913;
+      --green: #32B868;
+      --radius: 16px;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Roboto", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 28px 18px 64px;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 10px;
+    }
+    .icon {
+      width: 60px;
+      height: 60px;
+      border-radius: 14px;
+      border: 1px solid var(--border-hi);
+      flex-shrink: 0;
+    }
+    h1 {
+      margin: 0;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+    .sub {
+      margin: 3px 0 0;
+      font-size: 15px;
+      color: var(--muted);
+    }
+    .detected-bar {
+      background: rgba(50, 184, 104, 0.12);
+      border: 1px solid rgba(50, 184, 104, 0.35);
+      color: #7CE8A8;
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      margin: 18px 0 20px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    @media (max-width: 620px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .card.highlight {
+      border-color: var(--gold);
+      box-shadow: 0 0 0 1px rgba(229, 169, 19, 0.35);
+    }
+    .card-top {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .card-top img {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      border: 1px solid var(--border-hi);
+    }
+    .card h2 {
+      margin: 0;
+      font-size: 19px;
+      font-weight: 650;
+    }
+    .tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(229, 169, 19, 0.16);
+      color: var(--gold);
+      margin-top: 2px;
+    }
+    .card p {
+      margin: 0 0 16px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 50px;
+      padding: 12px 18px;
+      border-radius: 11px;
+      border: 1px solid var(--border-hi);
+      background: var(--surface-hi);
+      color: var(--text);
+      font-size: 15px;
+      font-weight: 650;
+      text-decoration: none;
+      cursor: pointer;
+      width: 100%;
+      text-align: center;
+    }
+    .btn-green { background: var(--green); color: #fff; border: none; }
+    .btn-primary { background: var(--vermilion); color: #fff; border: none; }
+    .list-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .list-row:last-child { border-bottom: none; }
+    .seg {
+      display: inline-flex;
+      background: var(--bg);
+      padding: 3px;
+      border-radius: 9px;
+      border: 1px solid var(--border);
+    }
+    .seg button {
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .seg button.active {
+      background: var(--surface-hi);
+      color: var(--text);
+    }
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      color: var(--faint);
+      font-size: 12px;
+      margin-top: 32px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <img src="mobox-icon.png" alt="MoBox" class="icon" />
+      <div>
+        <h1>MoBox &amp; ZLT X28</h1>
+        <p class="sub">One-click setup for your Mi Box, Android phone, ZLT 5G router, and Mac.</p>
+      </div>
+    </div>
+
+    <div class="detected-bar" id="detectedBanner">
+      Detecting your device…
+    </div>
+
+    <!-- PRIMARY 1-CLICK APPS -->
+    <div class="grid">
+      <!-- 1. MoBox for Android & Mi Box -->
+      <div class="card" id="cardMoboxApk">
+        <div>
+          <div class="card-top">
+            <img src="mobox-icon.png" alt="MoBox" />
+            <div>
+              <h2>MoBox for Android &amp; Mi Box</h2>
+              <span class="tag">Android Phone or Mi Box TV • 49 KB</span>
+            </div>
+          </div>
+          <p>
+            Install directly on your <b>Mi Box / Android TV</b> or on your <b>spare Android phone</b>. One tap installs Hume Launcher, TV Live (2,200+ Worldwide &amp; Iran channels), SmartTube, TV Bro, SlamVision, MATVT mouse helper, and Aerial Views 4K Space &amp; Nature slideshow — and also includes the ZLT X28 router fixer.
+          </p>
+        </div>
+        <a class="btn btn-green" href="https://raw.githubusercontent.com/aghamorad/mibox-fixer/main/docs/downloads/MoBox.apk" download="MoBox.apk">
+          Download MoBox.apk (Android &amp; Mi Box)
+        </a>
+      </div>
+
+      <!-- 2. ZLT X28 for Android Phone -->
+      <div class="card" id="cardZltApk">
+        <div>
+          <div class="card-top">
+            <img src="zlt-icon.png" alt="ZLT X28" />
+            <div>
+              <h2>ZLT X28 for Android</h2>
+              <span class="tag">Android Phone • 21 KB</span>
+            </div>
+          </div>
+          <p>
+            Dedicated Android phone app for the <b>ZLT X28 5G router</b> (192.168.70.1). One tap fixes the broken empty Auto-APN bug (sets MCI mcinet as default), turns on Auto-Dial, clears stuck band locks, and reads live signal and WAN IP.
+          </p>
+        </div>
+        <a class="btn btn-primary" href="https://raw.githubusercontent.com/aghamorad/mibox-fixer/main/docs/downloads/ZLT-X28.apk" download="ZLT-X28.apk">
+          Download ZLT-X28.apk (Android)
+        </a>
+      </div>
+
+      <!-- 3. MoBox for Mac -->
+      <div class="card" id="cardMoboxMac">
+        <div>
+          <div class="card-top">
+            <img src="mobox-icon.png" alt="MoBox Mac" />
+            <div>
+              <h2>MoBox for macOS</h2>
+              <span class="tag">Mac (Apple Silicon &amp; Intel)</span>
+            </div>
+          </div>
+          <p>
+            Native macOS app with Simple (75-Year-Old) and Advanced (35-Year-Old) modes. Auto-discovers your Mi Box on Wi-Fi, applies the HDMI-CEC TV-remote auto-wake fix, installs all apps, and serves a QR code for your phone.
+          </p>
+        </div>
+        <a class="btn" href="https://raw.githubusercontent.com/aghamorad/mibox-fixer/main/docs/downloads/MoBox-Mac-universal.zip" download="MoBox-Mac-universal.zip">
+          Download MoBox for Mac (.zip)
+        </a>
+      </div>
+
+      <!-- 4. ZLT X28 for Mac -->
+      <div class="card" id="cardZltMac">
+        <div>
+          <div class="card-top">
+            <img src="zlt-icon.png" alt="ZLT X28 Mac" />
+            <div>
+              <h2>ZLT X28 for macOS</h2>
+              <span class="tag">Mac (Apple Silicon &amp; Intel)</span>
+            </div>
+          </div>
+          <p>
+            Full macOS control center for the ZLT X28 5G router: one-switch router-wide VPN (AmneziaWG &amp; sing-box share links), band speed benchmarking, and connection health diagnostics.
+          </p>
+        </div>
+        <a class="btn" href="https://github.com/aghamorad/zlt-x28/releases/latest">
+          Download ZLT X28 for Mac
+        </a>
+      </div>
+    </div>
+
+    <!-- DIRECT TV APPS & PLAYLIST -->
+    <div class="card" style="margin-top: 16px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+        <div>
+          <h2 style="margin:0; font-size:18px;">Direct TV App Downloads (Optional)</h2>
+          <p style="margin:2px 0 0; font-size:13px; color:var(--muted);">
+            If you want to download individual apps directly onto a Mi Box or USB stick:
+          </p>
+        </div>
+        <div class="seg">
+          <button class="active" id="btn32" onclick="setArch('32')">Mi Box 4 (32-bit)</button>
+          <button id="btn64" onclick="setArch('64')">Newer Box (64-bit)</button>
+        </div>
+      </div>
+
+      <div id="directApps"></div>
+
+      <div class="list-row" style="margin-top:6px;">
+        <div>
+          <strong>Worldwide + Top Picks + Iran IPTV Playlist (world.m3u)</strong>
+          <div style="font-size:12px; color:var(--muted); word-break:break-all;">
+            https://raw.githubusercontent.com/aghamorad/mibox-fixer/main/playlists/world.m3u
+          </div>
+        </div>
+        <button class="btn" style="width:auto; min-height:38px; padding:6px 14px; font-size:13px;" onclick="copyPlaylist()">
+          Copy Playlist URL
+        </button>
+      </div>
+    </div>
+
+    <div class="footer">
+      <span>Made by Morad</span>
+      <span>MoBox v2.1.0 &amp; ZLT X28 v1.2.0</span>
+    </div>
+  </div>
+
+  <script>
+    const APPS = [
+      {
+        title: 'Hume Launcher 7.8 (Apple TV-style Home Screen)',
+        desc: 'Frosted-glass dock, zero ads.',
+        url32: 'https://github.com/petrobot-admin/hume-launcher/releases/download/v7.8/HumeLauncher-7.8.apk',
+        url64: 'https://github.com/petrobot-admin/hume-launcher/releases/download/v7.8/HumeLauncher-7.8.apk'
+      },
+      {
+        title: 'TV Live (MyTV 2.2.0)',
+        desc: 'Live TV player with web panel on port 10591.',
+        url32: 'https://github.com/mytv-android/mytv-android/releases/download/V2.2.0.219/mytv-android-tv-2.2.0.219-all-sdk23-original.apk',
+        url64: 'https://github.com/mytv-android/mytv-android/releases/download/V2.2.0.219/mytv-android-tv-2.2.0.219-all-sdk23-original.apk'
+      },
+      {
+        title: 'SmartTube 32.56 (Ad-Free YouTube)',
+        desc: 'Replaces the stock ad-heavy YouTube app.',
+        url32: 'https://github.com/yuliskov/SmartTube/releases/download/32.56s/SmartTube_stable_32.56_armeabi-v7a.apk',
+        url64: 'https://github.com/yuliskov/SmartTube/releases/download/32.56s/SmartTube_stable_32.56_arm64-v8a.apk'
+      },
+      {
+        title: 'TV Bro 3.0.5 (geckoExcluded)',
+        desc: 'Remote-friendly web browser for Android TV.',
+        url32: 'https://github.com/truefedex/tv-bro/releases/download/v3.0.5/tvbro-3.0.5-generic-geckoExcluded.apk',
+        url64: 'https://github.com/truefedex/tv-bro/releases/download/v3.0.5/tvbro-3.0.5-generic-geckoExcluded.apk'
+      },
+      {
+        title: 'SlamVision 1.4.0 (24/7 Retro Wrestling)',
+        desc: 'Classic territory & retro wrestling channels.',
+        url32: 'https://github.com/jhatren927-ai/slamvision-tv/releases/download/v1.4.0/SlamVision.apk',
+        url64: 'https://github.com/jhatren927-ai/slamvision-tv/releases/download/v1.4.0/SlamVision.apk'
+      },
+      {
+        title: 'MATVT 1.0.6 (Mouse & Scroll Helper)',
+        desc: 'Virtual mouse cursor and scroll mode for your TV remote.',
+        url32: 'https://github.com/virresh/matvt/releases/download/v1.0.6/matvt-app-release-v1.0.6.apk',
+        url64: 'https://github.com/virresh/matvt/releases/download/v1.0.6/matvt-app-release-v1.0.6.apk'
+      },
+      {
+        title: 'Aerial Views 1.8.5 (4K Space & Nature Slideshow)',
+        desc: '250+ 4K Outer Space and Nature scenes when your TV sits idle.',
+        url32: 'https://github.com/theothernt/AerialViews/releases/download/1.8.5/aerial-views-1.8.5.apk',
+        url64: 'https://github.com/theothernt/AerialViews/releases/download/1.8.5/aerial-views-1.8.5.apk'
+      }
+    ];
+
+    let arch = '32';
+
+    function setArch(a) {
+      arch = a;
+      document.getElementById('btn32').classList.toggle('active', a === '32');
+      document.getElementById('btn64').classList.toggle('active', a === '64');
+      renderApps();
+    }
+
+    function renderApps() {
+      const box = document.getElementById('directApps');
+      box.innerHTML = APPS.map(a => `
+        <div class="list-row">
+          <div>
+            <strong>${a.title}</strong>
+            <div style="font-size:13px; color:var(--muted);">${a.desc}</div>
+          </div>
+          <a class="btn" style="width:auto; min-height:38px; padding:6px 14px; font-size:13px; flex-shrink:0;"
+            href="${arch === '64' ? a.url64 : a.url32}">
+            Download APK
+          </a>
+        </div>
+      `).join('');
+    }
+
+    function copyPlaylist() {
+      const u = 'https://raw.githubusercontent.com/aghamorad/mibox-fixer/main/playlists/world.m3u';
+      if (navigator.clipboard) navigator.clipboard.writeText(u);
+      alert('Copied playlist URL:\n' + u);
+    }
+
+    (function detect() {
+      const ua = navigator.userAgent || '';
+      const banner = document.getElementById('detectedBanner');
+      if (/MIBOX|Android.*TV|BRAVIA|AFT|GTV/i.test(ua)) {
+        banner.textContent = 'Detected Android TV / Mi Box — tap "Download MoBox.apk" below to set up this box in one click.';
+        document.getElementById('cardMoboxApk').classList.add('highlight');
+      } else if (/Android/i.test(ua)) {
+        banner.textContent = 'Detected Android Phone — download MoBox.apk (for your Mi Box & ZLT router) or ZLT-X28.apk below.';
+        document.getElementById('cardMoboxApk').classList.add('highlight');
+        document.getElementById('cardZltApk').classList.add('highlight');
+      } else if (/Macintosh|Mac OS X/i.test(ua)) {
+        banner.textContent = 'Detected macOS — download MoBox for Mac (.zip) or MoBox.apk for your Android devices below.';
+        document.getElementById('cardMoboxMac').classList.add('highlight');
+      } else {
+        banner.textContent = 'Choose your device below — Android Phone, Mi Box / Android TV, or Mac.';
+      }
+      renderApps();
+    })();
+  </script>
+</body>
+</html>

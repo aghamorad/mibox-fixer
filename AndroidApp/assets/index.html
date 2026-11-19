@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>MoBox</title>
+  <style>
+    :root {
+      --bg: #0D0F14;
+      --surface: #151922;
+      --surface-hi: #1C212D;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-hi: rgba(255, 255, 255, 0.18);
+      --text: #F4F1EA;
+      --muted: #949DB0;
+      --faint: #5E677A;
+      --vermilion: #E84A27;
+      --gold: #E5A913;
+      --green: #32B868;
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Roboto", "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 20px 16px 48px;
+    }
+    .top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .brand-title { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.4px; }
+    .brand-sub { margin: 2px 0 0; font-size: 13px; color: var(--muted); }
+    .seg {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+      background: var(--surface);
+      padding: 4px;
+      border-radius: 11px;
+      border: 1px solid var(--border);
+      margin-bottom: 16px;
+    }
+    .seg button {
+      min-height: 46px;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .seg button.active {
+      background: var(--surface-hi);
+      color: var(--text);
+      border: 1px solid var(--border-hi);
+    }
+    .seg button:focus, .btn:focus {
+      outline: 3px solid var(--gold);
+      outline-offset: 2px;
+    }
+    .scope-note {
+      font-size: 13px;
+      color: var(--muted);
+      margin: 0 0 12px;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      margin-bottom: 14px;
+    }
+    .hero-title { margin: 0; font-size: 22px; font-weight: 650; }
+    .hero-detail { margin: 6px 0 14px; font-size: 14px; color: var(--muted); }
+    .btn {
+      min-height: 48px;
+      padding: 11px 16px;
+      border-radius: 10px;
+      border: 1px solid var(--border-hi);
+      background: var(--surface-hi);
+      color: var(--text);
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      text-align: center;
+    }
+    .btn-green { background: var(--green); color: #fff; border: none; font-size: 16px; }
+    .btn-primary { background: var(--vermilion); color: #fff; border: none; }
+    .btn-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    @media (max-width: 480px) {
+      .btn-row { grid-template-columns: 1fr; }
+    }
+    .prog-track {
+      margin-top: 12px;
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(255,255,255,0.08);
+      overflow: hidden;
+    }
+    .prog-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--green);
+      transition: width 0.25s ease;
+    }
+    .kv-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 7px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      font-size: 14px;
+    }
+    .kv-row:last-child { border-bottom: none; }
+    .kv-k { color: var(--muted); }
+    .kv-v { font-weight: 500; }
+    .list-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 11px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .list-row:last-child { border-bottom: none; }
+    .chip {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(50, 184, 104, 0.16);
+      color: #5CE092;
+      margin-left: 6px;
+    }
+    .input-box {
+      width: 100%;
+      min-height: 46px;
+      border-radius: 10px;
+      border: 1px solid var(--border-hi);
+      background: var(--bg);
+      color: var(--text);
+      padding: 0 12px;
+      font-size: 15px;
+      margin: 8px 0 10px;
+    }
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      color: var(--faint);
+      font-size: 12px;
+      margin-top: 24px;
+    }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="top">
+      <div>
+        <h1 class="brand-title">MoBox</h1>
+        <p class="brand-sub" id="subTitle">One-click Mi Box &amp; ZLT X28 setup for Android</p>
+      </div>
+    </div>
+
+    <div class="seg">
+      <button class="active" id="tabSimple" onclick="setTab('simple')">Mi Box (Simple)</button>
+      <button id="tabZlt" onclick="setTab('zlt')">ZLT X28 Router</button>
+      <button id="tabAdv" onclick="setTab('adv')">Advanced (35)</button>
+    </div>
+
+    <!-- 1. MI BOX SIMPLE TAB -->
+    <div id="viewSimple">
+      <p class="scope-note">
+        Automatically checks whether this device is 32-bit or 64-bit, downloads the matching apps, and programs TV Live channels.
+      </p>
+
+      <div class="card">
+        <h2 class="hero-title" id="heroTitle">Ready to set up</h2>
+        <p class="hero-detail" id="heroDetail">
+          Tap once to install Hume Launcher, TV Live (with 2,200+ Worldwide &amp; Iran channels), SmartTube, TV Bro, SlamVision, MATVT mouse helper, and Aerial Views 4K Space &amp; Nature slideshow.
+        </p>
+        <button class="btn btn-green" id="btnSetup" onclick="startAllInOne()">
+          Set Up Mi Box (All-in-One)
+        </button>
+        <div class="prog-track"><div class="prog-fill" id="progBar"></div></div>
+        <p id="progText" style="margin:8px 0 0; font-size:13px; color:var(--muted);">Ready.</p>
+      </div>
+
+      <div class="card">
+        <h3 style="margin:0 0 8px; font-size:16px;">Quick TV Settings &amp; Channels</h3>
+        <div class="btn-row">
+          <button class="btn" onclick="programTvLive()">Program TV Live Channels</button>
+          <button class="btn" onclick="openSys('screensaver')">Pick 4K Space Screensaver</button>
+          <button class="btn" onclick="openSys('home')">Pick Hume Home Screen</button>
+          <button class="btn" onclick="openSys('bluetooth')">Pair Apple Magic Mouse</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 style="margin:0 0 8px; font-size:16px;">This Android Device</h3>
+        <div id="devInfo"></div>
+      </div>
+    </div>
+
+    <!-- 2. ZLT X28 ROUTER TAB -->
+    <div id="viewZlt" class="hidden">
+      <p class="scope-note">
+        Connect your Android phone to the ZLT X28 Wi-Fi (192.168.70.1), then tap below to fix the MCI / Irancell APN, enable Auto-Dial, and clear stuck band locks.
+      </p>
+      <div class="card">
+        <h2 class="hero-title">ZLT X28 5G Router Fix</h2>
+        <p class="hero-detail">
+          Fixes the broken empty Auto-APN bug (sets MCI mcinet as default), turns on Auto-Dial, and clears locked bands in one click.
+        </p>
+        <label style="font-size:13px; color:var(--muted);">Router admin password (default is admin):</label>
+        <input type="text" class="input-box" id="zltPass" value="admin" />
+        <button class="btn btn-primary" onclick="runZltFix()">
+          Fix My ZLT X28 Router Now
+        </button>
+        <p id="zltResult" style="margin:10px 0 0; font-size:14px; color:var(--muted);"></p>
+      </div>
+    </div>
+
+    <!-- 3. ADVANCED TAB -->
+    <div id="viewAdv" class="hidden">
+      <p class="scope-note">Install individual apps or program a Mi Box over Wi-Fi from an Android phone.</p>
+
+      <div class="card">
+        <h3 style="margin:0 0 6px; font-size:16px;">Program Mi Box TV Live from Phone over Wi-Fi</h3>
+        <p style="margin:0 0 8px; font-size:13px; color:var(--muted);">
+          If you are running MoBox on an Android phone, scan Wi-Fi for your Mi Box and program its TV Live channels remotely:
+        </p>
+        <input type="text" class="input-box" id="remoteIp" placeholder="Mi Box IP (or tap Scan Wi-Fi)" />
+        <div class="btn-row">
+          <button class="btn" onclick="scanForBox()">Scan Wi-Fi for Mi Box</button>
+          <button class="btn btn-primary" onclick="programRemoteBox()">Program TV Live on Box</button>
+        </div>
+        <p id="remoteMsg" style="margin:8px 0 0; font-size:13px; color:var(--muted);"></p>
+      </div>
+
+      <div class="card">
+        <h3 style="margin:0 0 8px; font-size:16px;">Apps (Architecture-Matched)</h3>
+        <div id="appsList"></div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <span>Made by Morad</span>
+      <span>MoBox v2.1.0 for Android</span>
+    </div>
+  </div>
+
+  <script>
+    function setTab(t) {
+      document.getElementById('tabSimple').classList.toggle('active', t === 'simple');
+      document.getElementById('tabZlt').classList.toggle('active', t === 'zlt');
+      document.getElementById('tabAdv').classList.toggle('active', t === 'adv');
+      document.getElementById('viewSimple').classList.toggle('hidden', t !== 'simple');
+      document.getElementById('viewZlt').classList.toggle('hidden', t !== 'zlt');
+      document.getElementById('viewAdv').classList.toggle('hidden', t !== 'adv');
+    }
+
+    function refresh() {
+      if (typeof MoBoxNative === 'undefined') return;
+      const st = JSON.parse(MoBoxNative.getStatusJson());
+      const kind = st.is_tv ? 'Android TV / Mi Box' : 'Android Phone / Tablet';
+      document.getElementById('subTitle').textContent = `${st.model} (${kind}) • ${st.arch_label}`;
+      const pct = st.total ? Math.round((st.step / st.total) * 100) : 0;
+      document.getElementById('progBar').style.width = pct + '%';
+      document.getElementById('progText').textContent = st.label || 'Ready.';
+
+      const rows = [
+        ['Device', `${st.manufacturer} ${st.model} (${kind})`],
+        ['Android', `Android ${st.android_release} (SDK ${st.sdk})`],
+        ['Firmware', st.build_id],
+        ['Processor', st.arch_label],
+        ['Free space', `${st.free_storage_mb} MB`],
+        ['Wi-Fi IP', st.wifi_ip || '—']
+      ];
+      document.getElementById('devInfo').innerHTML = rows.map(([k, v]) =>
+        `<div class="kv-row"><span class="kv-k">${k}</span><span class="kv-v">${v}</span></div>`
+      ).join('');
+
+      if (st.apps) {
+        document.getElementById('appsList').innerHTML = st.apps.map(a => `
+          <div class="list-row">
+            <div>
+              <strong>${a.title}</strong>
+              ${a.installed ? '<span class="chip">Installed</span>' : ''}
+            </div>
+            <button class="btn" style="width:auto; min-height:38px; padding:6px 14px; font-size:13px;"
+              onclick="MoBoxNative.installSingleApp('${a.key}')">
+              ${a.installed ? 'Reinstall' : 'Install'}
+            </button>
+          </div>
+        `).join('');
+      }
+    }
+
+    function startAllInOne() {
+      if (typeof MoBoxNative !== 'undefined') {
+        MoBoxNative.runOneClickSetup();
+      }
+    }
+
+    function programTvLive() {
+      if (typeof MoBoxNative !== 'undefined') {
+        document.getElementById('progText').textContent = MoBoxNative.programTvLiveOnWifi('');
+      }
+    }
+
+    function openSys(which) {
+      if (typeof MoBoxNative !== 'undefined') {
+        MoBoxNative.openSystemScreen(which);
+      }
+    }
+
+    function scanForBox() {
+      if (typeof MoBoxNative !== 'undefined') {
+        document.getElementById('remoteMsg').textContent = 'Scanning Wi-Fi for Mi Box…';
+        setTimeout(() => {
+          const ip = MoBoxNative.scanWifiForMiBox();
+          if (ip) {
+            document.getElementById('remoteIp').value = ip;
+            document.getElementById('remoteMsg').textContent = 'Found Mi Box at ' + ip;
+          } else {
+            document.getElementById('remoteMsg').textContent = 'No Mi Box found automatically — enter its IP above.';
+          }
+        }, 60);
+      }
+    }
+
+    function programRemoteBox() {
+      if (typeof MoBoxNative !== 'undefined') {
+        const ip = document.getElementById('remoteIp').value;
+        document.getElementById('remoteMsg').textContent = MoBoxNative.programTvLiveOnWifi(ip);
+      }
+    }
+
+    function runZltFix() {
+      if (typeof MoBoxNative !== 'undefined') {
+        const pw = document.getElementById('zltPass').value;
+        document.getElementById('zltResult').textContent = 'Talking to ZLT X28 at 192.168.70.1…';
+        setTimeout(() => {
+          document.getElementById('zltResult').textContent = MoBoxNative.fixZltRouter(pw);
+        }, 60);
+      }
+    }
+
+    setInterval(refresh, 1000);
+    refresh();
+  </script>
+</body>
+</html>

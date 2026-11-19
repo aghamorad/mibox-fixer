@@ -1,7 +1,19 @@
-# Mi Box Fixer
+# MoBox (Mi Box Fixer)
 
 Turn a slow, ad-ridden Xiaomi Mi Box (or any Android TV box) into a fast, clean
-media player — from your computer, over Wi-Fi, with checkboxes.
+media player — in **one click** from an **Android phone**, directly on the
+**Mi Box itself**, or from your **Mac**.
+
+![MoBox icon](MoBoxApp/icon-preview.png)
+
+## One-Click Downloads (Send This Page to Family)
+
+| Device | One-Click Download | What it does |
+| --- | --- | --- |
+| **Mi Box / Android TV** or **Android Phone** | **[Download MoBox.apk (49 KB)](https://raw.githubusercontent.com/aghamorad/mibox-fixer/main/docs/downloads/MoBox.apk)** | Runs directly on the **Mi Box** or on any **spare Android phone**. Detects 32-bit vs 64-bit, installs Hume Launcher, TV Live (2,200+ Worldwide & Iran channels), SmartTube, TV Bro, SlamVision, MATVT mouse helper, and Aerial Views 4K Space & Nature slideshow in one tap — plus a built-in **ZLT X28 5G router fixer**. |
+| **Android Phone (ZLT X28 5G Router)** | **[Download ZLT-X28.apk (21 KB)](https://raw.githubusercontent.com/aghamorad/mibox-fixer/main/docs/downloads/ZLT-X28.apk)** | Standalone Android phone app for the **ZLT X28 5G router** (`192.168.70.1`). One tap fixes the broken empty Auto-APN bug (sets MCI `mcinet` as default), turns on Auto-Dial, and clears stuck band locks. |
+| **Mac (Apple Silicon & Intel)** | **[Download MoBox-Mac-universal.zip (1.2 MB)](https://raw.githubusercontent.com/aghamorad/mibox-fixer/main/docs/downloads/MoBox-Mac-universal.zip)** | Native macOS app (`MoBox.app`) with **Simple (75-Year-Old Mode)** and **Advanced (35-Year-Old Mode)**, Wi-Fi auto-discovery, HDMI-CEC TV-remote auto-wake fix, Couch TV Remote, and a QR code for your phone. |
+| **Mac (ZLT X28 5G Router)** | **[Download ZLT X28 for Mac](https://github.com/aghamorad/zlt-x28/releases/latest)** | Full macOS control center for the ZLT X28 5G router (router-wide AmneziaWG & sing-box VPN switch, band speed tests, and health checks). |
 
 No custom ROM. No unlocked bootloader. No chance of bricking the box: everything
 this tool does is either an app install or a *reversible* `pm disable-user`.

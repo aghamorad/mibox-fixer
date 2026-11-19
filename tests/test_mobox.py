@@ -75,6 +75,10 @@ class MoBoxTests(unittest.TestCase):
 
         root = Path(web.__file__).resolve().parent.parent
         self.assertTrue((root / "web" / "index.html").is_file())
+        self.assertTrue((root / "docs" / "index.html").is_file())
+        self.assertTrue((root / "docs" / "downloads" / "MoBox.apk").is_file())
+        self.assertTrue((root / "docs" / "downloads" / "ZLT-X28.apk").is_file())
+        self.assertTrue((root / "AndroidApp" / "build_apk.sh").is_file())
         self.assertTrue((root / "MoBoxApp" / "make_icon.py").is_file())
         self.assertIn("UP", web.REMOTE_KEYCODES)
         self.assertEqual(web.REMOTE_KEYCODES["OK"], 23)
