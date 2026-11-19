@@ -1,5 +1,13 @@
 # Handoff — Mi Box Fixer
 
+## 2026-11-19 Apple Magic Mouse helper (MATVT) & HDMI-CEC TV-wake fix — completed
+Verified live against Morad's Mi Box 4 (`MIBOX4`, Android 9 / SDK 28, `armeabi-v7a`, Linux `4.9.113`) at `192.168.0.117:5555` (via isolated ADB server port `5038` so the Quest 3 on `5037` stayed untouched):
+- **Kernel HID audit**: `/sys/bus/hid/drivers` contains only `apple` and `hid-generic` — Xiaomi omitted `hid-magicmouse` from kernel `4.9.113`. Direct Bluetooth pairing gives optical pointer + left/right click (no glass multi-touch scroll/trackpad on-box without an external Linux USB HID bridge like a Pi Zero 2 W).
+- **MATVT v1.0.6 (`io.github.virresh.matvt`)** installed from `virresh/matvt` (`matvt-app-release-v1.0.6.apk`, via temporary Play Protect verifier toggle with verified restore to `1`), granted `SYSTEM_ALERT_WINDOW`, and enabled `io.github.virresh.matvt/.services.MouseEventService` in `secure/enabled_accessibility_services` (`accessibility_enabled=1`, PID `32226` running). Added `matvt` to `fixer/catalog.py`.
+- **HDMI-CEC / Never-Sleep fix** (eliminates the Android 9 + Samsung Anynet+ deep-sleep coma when the TV turns off so the box is always awake and ready for the Samsung TV remote when the TV turns on): set `global/stay_on_while_plugged_in=7`, `global/hdmi_control_enabled=1`, `global/hdmi_control_one_touch_play_enabled=1`, `global/hdmi_control_auto_device_off_enabled=0` (verified `mAutoTvOff:false` in `dumpsys hdmi_control`), `global/hdmi_control_auto_wakeup_enabled=1`, `secure/sleep_timeout=-1`, `secure/screensaver_enabled=0`, `system/screen_off_timeout=2147483647`. Folded into `Fixer.do_tune()` in `fixer/tasks.py`.
+- **Verification**: `python3 -m unittest discover -s tests -v` passed `31/31`; noob's guide written to `~/Desktop/Mi Box Mouse & Auto-Wake — a noob's guide.md`.
+- **Manual on-TV step remaining for Morad**: Pair the Apple Magic Mouse in **Settings → Remotes & Accessories → Add accessory**, and optionally open **MATVT** once to pick a preferred BossKey on the Samsung remote.
+
 ## 2026-11-17 personalized TV and portable setup — in progress
 Prioritize comedy, classic films, wrestling and independent/non-establishment
 news while retaining the full Free-TV worldwide list including Iran. User also

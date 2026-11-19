@@ -400,6 +400,19 @@ APPS: list[AppItem] = [
         component="com.slamvision.tv/.MainActivity",
         default=False,
     ),
+    AppItem(
+        key="matvt",
+        title="MATVT (Mouse Toggle & Scroll Helper)",
+        package="io.github.virresh.matvt",
+        detail="Open-source virtual mouse cursor and scroll-mode overlay for Android TV. "
+               "Pairs well with a TV remote or a Bluetooth mouse that lacks native scroll.",
+        kind="github",
+        repo="virresh/matvt",
+        version="v1.0.6",
+        asset="matvt-app-release-v1.0.6.apk",
+        component="io.github.virresh.matvt/.gui.GuiActivity",
+        default=False,
+    ),
 ]
 
 APPS_BY_KEY = {a.key: a for a in APPS}

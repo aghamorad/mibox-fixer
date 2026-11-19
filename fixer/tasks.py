@@ -134,9 +134,26 @@ class Fixer:
             self.report("ok     animation scales set to 0.5x")
 
         if plan.stay_awake:
-            ok = self.adb.put_setting("global", "stay_on_while_plugged_in", 3)
-            results.append(Result(ok, "stay awake while plugged in"))
-            self.report("ok     stay awake while plugged in")
+            awake_settings = [
+                ("global", "stay_on_while_plugged_in", 7),
+                ("global", "hdmi_control_enabled", 1),
+                ("global", "hdmi_control_one_touch_play_enabled", 1),
+                ("global", "hdmi_control_auto_device_off_enabled", 0),
+                ("global", "hdmi_control_auto_wakeup_enabled", 1),
+                ("secure", "sleep_timeout", -1),
+                ("secure", "screensaver_enabled", 0),
+                ("system", "screen_off_timeout", 2147483647),
+            ]
+            all_ok = True
+            for ns, key, val in awake_settings:
+                ok = self.adb.put_setting(ns, key, val)
+                all_ok = all_ok and ok
+                results.append(Result(ok, f"{ns}/{key} = {val}"))
+            self.report(
+                "ok     stay awake & HDMI-CEC TV-remote wake protection applied"
+                if all_ok
+                else "note   some stay-awake / HDMI-CEC settings failed"
+            )
 
         if plan.clear_recommendations:
             ok = self.adb.shell_ok("pm clear com.android.providers.tv")
