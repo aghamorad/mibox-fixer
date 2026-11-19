@@ -106,9 +106,15 @@ class Device:
 class Adb:
     """A connected adb client, optionally pinned to one device serial."""
 
-    def __init__(self, binary: Optional[str] = None, serial: Optional[str] = None):
+    def __init__(
+        self,
+        binary: Optional[str] = None,
+        serial: Optional[str] = None,
+        server_port: Optional[str] = None,
+    ):
         self.binary = binary or find_adb()
         self.serial = serial
+        self.server_port = server_port or os.environ.get("ANDROID_ADB_SERVER_PORT")
         if not self.binary:
             raise AdbError(
                 "Could not find the 'adb' binary. Install Android platform-tools, "
@@ -116,6 +122,13 @@ class Adb:
             )
 
     # ------------------------------------------------------------------ low level
+
+    def _env(self) -> Optional[dict[str, str]]:
+        if not self.server_port:
+            return None
+        env = os.environ.copy()
+        env["ANDROID_ADB_SERVER_PORT"] = str(self.server_port)
+        return env
 
     def _base(self) -> list[str]:
         cmd = [self.binary]
@@ -165,6 +178,7 @@ class Adb:
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 timeout=timeout,
+                env=self._env(),
             )
             blob = (last.stdout + last.stderr).decode("utf-8", "replace").lower()
             if not any(t in blob for t in self._TRANSIENT):
@@ -187,10 +201,12 @@ class Adb:
             subprocess.run(
                 [self.binary, "disconnect", host],
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=15,
+                env=self._env(),
             )
             subprocess.run(
                 [self.binary, "connect", host],
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=20,
+                env=self._env(),
             )
         time.sleep(1.0)
 
@@ -212,8 +228,10 @@ class Adb:
     # ------------------------------------------------------------------ discovery
 
     @classmethod
-    def devices(cls, binary: Optional[str] = None) -> list[Device]:
-        client = cls(binary=binary)
+    def devices(
+        cls, binary: Optional[str] = None, server_port: Optional[str] = None
+    ) -> list[Device]:
+        client = cls(binary=binary, server_port=server_port)
         rc, out, _ = client.run(["devices", "-l"], timeout=30)
         found: list[Device] = []
         for line in out.splitlines()[1:]:
@@ -239,17 +257,64 @@ class Adb:
         """Connect over Wi-Fi. `host` may already include a port."""
         target = host if ":" in host else f"{host}:{port}"
         try:
-            self.run(["connect", target], timeout=timeout)
+            _, out, err = self.run(["connect", target], timeout=timeout)
         except (AdbError, subprocess.TimeoutExpired):
             return False
+        # On macOS, a pre-existing adb daemon on 5037 launched from another app
+        # can lack Local Network permission and report "No route to host".
+        # Retry once on an isolated daemon port (5038) owned by this process.
+        if "no route to host" in (out + err).lower() and not self.server_port:
+            self.server_port = "5038"
+            try:
+                self.run(["connect", target], timeout=timeout)
+            except (AdbError, subprocess.TimeoutExpired):
+                return False
         deadline = time.time() + 6
         while time.time() < deadline:
-            for dev in self.devices(self.binary):
+            for dev in self.devices(self.binary, server_port=self.server_port):
                 if dev.serial == target and dev.is_ready:
                     self.serial = target
                     return True
             time.sleep(0.5)
         return False
+
+    def enable_matvt_service(self) -> bool:
+        """Grant MATVT overlay permission and enable its AccessibilityService."""
+        pkg = "io.github.virresh.matvt"
+        svc = f"{pkg}/.services.MouseEventService"
+        self.shell_ok(f"appops set {pkg} SYSTEM_ALERT_WINDOW allow")
+        cur = self.shell("settings get secure enabled_accessibility_services").strip()
+        if not cur or cur == "null":
+            new_val = svc
+        elif svc in cur.split(":"):
+            new_val = cur
+        else:
+            new_val = f"{cur}:{svc}"
+        ok1 = self.put_setting("secure", "enabled_accessibility_services", new_val)
+        ok2 = self.put_setting("secure", "accessibility_enabled", 1)
+        return ok1 and ok2
+
+    def open_bluetooth_settings(self) -> bool:
+        """Open Android TV Bluetooth / Accessories pairing screen on the TV."""
+        return self.shell_ok("am start -a android.settings.BLUETOOTH_SETTINGS")
+
+    def enable_aerial_views_screensaver(self) -> bool:
+        """Set Aerial Views as the 5-minute 4K Space & Nature slideshow screensaver."""
+        pkg = "com.neilturner.aerialviews"
+        dream = f"{pkg}/.ui.screensaver.DreamActivity"
+        self.shell_ok(f"pm grant {pkg} android.permission.READ_EXTERNAL_STORAGE")
+        self.shell_ok(f"pm grant {pkg} android.permission.WRITE_EXTERNAL_STORAGE")
+        self.shell_ok(f"appops set {pkg} SYSTEM_ALERT_WINDOW allow")
+        ok1 = self.put_setting("secure", "screensaver_components", dream)
+        ok2 = self.put_setting("secure", "screensaver_default_component", dream)
+        ok3 = self.put_setting("secure", "screensaver_enabled", 1)
+        ok4 = self.put_setting("secure", "screensaver_activate_on_sleep", 1)
+        ok5 = self.put_setting("secure", "screensaver_activate_on_dock", 1)
+        return ok1 and ok2 and ok3 and ok4 and ok5
+
+    def start_screensaver_now(self) -> bool:
+        """Launch the active Android TV screensaver (DreamService) immediately."""
+        return self.shell_ok("cmd dreams start-dreaming")
 
     def disconnect(self, target: Optional[str] = None) -> None:
         self.run(["disconnect"] + ([target] if target else []), timeout=15)

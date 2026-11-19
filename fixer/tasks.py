@@ -134,21 +134,24 @@ class Fixer:
             self.report("ok     animation scales set to 0.5x")
 
         if plan.stay_awake:
+            has_aerial = self.adb.is_installed("com.neilturner.aerialviews")
             awake_settings = [
-                ("global", "stay_on_while_plugged_in", 7),
+                ("global", "stay_on_while_plugged_in", 0 if has_aerial else 7),
                 ("global", "hdmi_control_enabled", 1),
                 ("global", "hdmi_control_one_touch_play_enabled", 1),
                 ("global", "hdmi_control_auto_device_off_enabled", 0),
                 ("global", "hdmi_control_auto_wakeup_enabled", 1),
                 ("secure", "sleep_timeout", -1),
-                ("secure", "screensaver_enabled", 0),
-                ("system", "screen_off_timeout", 2147483647),
+                ("secure", "screensaver_enabled", 1 if has_aerial else 0),
+                ("system", "screen_off_timeout", 300000 if has_aerial else 2147483647),
             ]
             all_ok = True
             for ns, key, val in awake_settings:
                 ok = self.adb.put_setting(ns, key, val)
                 all_ok = all_ok and ok
                 results.append(Result(ok, f"{ns}/{key} = {val}"))
+            if has_aerial:
+                self.adb.enable_aerial_views_screensaver()
             self.report(
                 "ok     stay awake & HDMI-CEC TV-remote wake protection applied"
                 if all_ok
@@ -231,6 +234,148 @@ class Fixer:
         if plan.set_home:
             self.report("=== Home screen")
             results.append(self.do_set_home())
+        return results
+
+    # ------------------------------------------------------------------ MoBox 1-click (Simple Mode)
+
+    MOBOX_SIMPLE_APPS = (
+        "hume",
+        "tvbro",
+        "mytv",
+        "slamvision",
+        "smarttube",
+        "matvt",
+        "aerialviews",
+    )
+
+    def do_enable_aerialviews(self) -> Result:
+        if not self.adb.is_installed("com.neilturner.aerialviews"):
+            return Result(False, "Aerial Views is not installed yet")
+        ok = self.adb.enable_aerial_views_screensaver()
+        self.report(
+            "ok     4K Space & Nature slideshow (Aerial Views) set as screensaver"
+            if ok
+            else "note   could not set Aerial Views screensaver automatically"
+        )
+        return Result(ok, "Aerial Views screensaver")
+
+    def do_enable_matvt(self) -> Result:
+        if not self.adb.is_installed("io.github.virresh.matvt"):
+            return Result(False, "MATVT is not installed yet")
+        ok = self.adb.enable_matvt_service()
+        self.report(
+            "ok     mouse & scroll helper (MATVT) activated"
+            if ok
+            else "note   could not enable MATVT accessibility automatically"
+        )
+        return Result(ok, "MATVT accessibility service")
+
+    def do_mobox_simple_setup(
+        self,
+        progress: Optional[Callable[[int, int, str], None]] = None,
+    ) -> list[Result]:
+        """The 75-year-old-friendly all-in-one setup: safe, non-destructive, idempotent."""
+        total = 5
+        results: list[Result] = []
+
+        def step(idx: int, label: str) -> None:
+            self.report(f"=== Step {idx}/{total}: {label}")
+            if progress:
+                progress(idx, total, label)
+
+        # 1. Install only missing MoBox apps (keep all existing apps & data intact)
+        step(1, "Installing missing MoBox apps (keeping your existing apps safe)")
+        missing = [
+            key
+            for key in self.MOBOX_SIMPLE_APPS
+            if not self.adb.is_installed(catalog.APPS_BY_KEY[key].package)
+        ]
+        if missing:
+            results += self.do_install(missing)
+        else:
+            self.report("ok     all MoBox apps are already installed")
+            results.append(Result(True, "all MoBox apps present"))
+
+        # 2. Activate MATVT mouse & scroll helper + Aerial Views 4K Space & Nature slideshow
+        step(2, "Turning on Mouse Helper (MATVT) & 4K Space/Nature Slideshow")
+        results.append(self.do_enable_matvt())
+        results.append(self.do_enable_aerialviews())
+
+        # 3. Fix HDMI-CEC + Never-Sleep so TV power-on always finds the box awake
+        step(3, "Setting up TV-remote auto-wake (HDMI-CEC + Never-Sleep)")
+        results += self.do_tune(
+            Plan(tune_animations=True, stay_awake=True, clear_recommendations=False, set_home=False)
+        )
+
+        # 4. Set Hume Apple TV-style home screen (preserving Beam/stock as backup)
+        step(4, "Setting your clean Apple TV-style home screen (Hume)")
+        results.append(self.do_set_home("hume"))
+
+        # 5. Refresh Live TV playlist if TV Live's local panel is reachable
+        step(5, "Checking Live TV channels (Top Picks + Worldwide)")
+        try:
+            from urllib.request import Request, urlopen
+            import json
+            import os
+            import time
+
+            rc, port_str, _ = self.adb.run(["forward", "tcp:0", "tcp:10591"], timeout=10)
+            if rc == 0 and port_str.strip().isdigit():
+                local_port = int(port_str.strip())
+                try:
+                    url = f"http://127.0.0.1:{local_port}/api/configs"
+                    with urlopen(Request(url), timeout=4) as resp:
+                        cfg = json.load(resp)
+                    playlist = (
+                        "https://raw.githubusercontent.com/aghamorad/mibox-fixer/main/playlists/world.m3u"
+                    )
+                    sources = cfg.get("iptvSourceList", {}).get("value", [])
+                    idx = next((i for i, s in enumerate(sources) if s.get("url") == playlist), None)
+                    if idx is None:
+                        sources.append({
+                            "name": "Top Picks + Worldwide",
+                            "url": playlist,
+                            "sourceType": 0,
+                            "mac": None,
+                            "userName": None,
+                            "password": None,
+                            "format": None,
+                            "transformJs": None,
+                            "httpUserAgent": None,
+                            "httpProxy": None,
+                        })
+                        idx = len(sources) - 1
+                    cfg["iptvSourceCurrentIdx"] = idx
+                    cfg["appStartupScreen"] = "Channels"
+                    # Private backup before writing
+                    self.cache.mkdir(parents=True, exist_ok=True)
+                    bak = self.cache / f"mytv-backup-{int(time.time())}.json"
+                    fd = os.open(bak, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+                    with os.fdopen(fd, "w") as out:
+                        json.dump(cfg, out, ensure_ascii=False, indent=2)
+                    req = Request(
+                        url,
+                        data=json.dumps(cfg).encode("utf-8"),
+                        headers={"Content-Type": "application/json"},
+                    )
+                    with urlopen(req, timeout=6) as resp:
+                        res = json.load(resp)
+                    ok = res.get("code") == 0
+                    self.report(
+                        "ok     TV Live set to Top Picks + Worldwide"
+                        if ok
+                        else "note   TV Live will finish setup after you open it once on the TV"
+                    )
+                    results.append(Result(True, "TV Live playlist checked"))
+                finally:
+                    self.adb.run(["forward", "--remove", f"tcp:{local_port}"], timeout=10)
+            else:
+                self.report("note   open TV Live once on the TV to finish channel setup")
+                results.append(Result(True, "TV Live pending first launch"))
+        except Exception:  # noqa: BLE001 - non-fatal if TV Live hasn't opened yet
+            self.report("note   open TV Live once on the TV to finish channel setup")
+            results.append(Result(True, "TV Live pending first launch"))
+
         return results
 
 

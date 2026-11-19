@@ -413,6 +413,19 @@ APPS: list[AppItem] = [
         component="io.github.virresh.matvt/.gui.GuiActivity",
         default=False,
     ),
+    AppItem(
+        key="aerialviews",
+        title="Aerial Views (4K Space & Nature Slideshow)",
+        package="com.neilturner.aerialviews",
+        detail="Apple TV-inspired 4K Space, Earth, Nature and local photo/video slideshow "
+               "screensaver for Android TV.",
+        kind="github",
+        repo="theothernt/AerialViews",
+        version="1.8.5",
+        asset="aerial-views-1.8.5.apk",
+        component="com.neilturner.aerialviews/.ui.MainActivity",
+        default=False,
+    ),
 ]
 
 APPS_BY_KEY = {a.key: a for a in APPS}

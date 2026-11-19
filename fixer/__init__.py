@@ -1,4 +1,4 @@
-"""Mi Box Fixer - debloat, de-Google and re-app a Xiaomi Mi Box over ADB."""
+"""MoBox (Mi Box Fixer) - simple & advanced Xiaomi Mi Box setup over ADB."""
 
-__version__ = "1.2.1"
+__version__ = "2.1.0"
 __all__ = ["__version__"]
