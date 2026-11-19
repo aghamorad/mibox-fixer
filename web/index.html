@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>MoBox — Easy Mi Box & Android TV Setup</title>
+  <link rel="icon" type="image/png" href="/icon.png" />
+  <style>
+    :root {
+      --bg: #111520;
+      --card: rgba(26, 32, 48, 0.78);
+      --card-border: rgba(255, 255, 255, 0.14);
+      --glass-hi: rgba(255, 255, 255, 0.08);
+      --text: #F8F4EC;
+      --muted: #A9B2C6;
+      --rand-red: #EA4A28;
+      --rand-gold: #F4B80C;
+      --rand-cyan: #2ACADE;
+      --green: #2ECC71;
+      --radius: 20px;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Rounded", "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+      background: radial-gradient(circle at 80% 10%, #1E2942 0%, var(--bg) 65%);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.45;
+    }
+    .wrap {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 18px 16px 48px;
+    }
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+    .logo {
+      width: 58px;
+      height: 58px;
+      border-radius: 15px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+      flex-shrink: 0;
+    }
+    .brand h1 {
+      margin: 0;
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+    .brand p {
+      margin: 2px 0 0;
+      font-size: 14px;
+      color: var(--muted);
+    }
+    /* Mode Switcher (75 vs 35) */
+    .mode-bar {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      background: rgba(12, 15, 24, 0.75);
+      padding: 6px;
+      border-radius: 16px;
+      border: 1px solid var(--card-border);
+      margin-bottom: 16px;
+    }
+    .mode-btn {
+      min-height: 48px;
+      border: none;
+      border-radius: 12px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.16s ease;
+      padding: 8px 10px;
+    }
+    .mode-btn.active {
+      background: linear-gradient(135deg, var(--rand-red), #D43818);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(234, 74, 40, 0.4);
+    }
+    /* Liquid Glass Cards */
+    .card {
+      background: var(--card);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 18px;
+      margin-bottom: 16px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    }
+    .card h2 {
+      margin: 0 0 8px;
+      font-size: 19px;
+      font-weight: 750;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .badge.ok { background: rgba(46, 204, 113, 0.18); color: #58E898; border: 1px solid rgba(46, 204, 113, 0.4); }
+    .badge.warn { background: rgba(244, 184, 12, 0.18); color: var(--rand-gold); border: 1px solid rgba(244, 184, 12, 0.4); }
+    .status-box {
+      background: rgba(10, 13, 22, 0.55);
+      border-radius: 14px;
+      padding: 14px;
+      margin: 10px 0 14px;
+      font-size: 15px;
+      white-space: pre-line;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+    /* Tactile Buttons (>= 48px for 75-Year-Old Rule) */
+    .btn {
+      min-height: 52px;
+      padding: 12px 18px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: transform 0.08s ease, background 0.15s ease;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-hero {
+      width: 100%;
+      min-height: 62px;
+      font-size: 19px;
+      background: linear-gradient(135deg, #2ECC71, #209E55);
+      color: #fff;
+      border: none;
+      box-shadow: 0 8px 22px rgba(46, 204, 113, 0.35);
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--rand-red), #C93718);
+      color: #fff;
+      border: none;
+    }
+    .btn-gold {
+      background: linear-gradient(135deg, var(--rand-gold), #D49B00);
+      color: #151822;
+      border: none;
+    }
+    .btn-cyan {
+      background: linear-gradient(135deg, var(--rand-cyan), #179BAE);
+      color: #0E131D;
+      border: none;
+    }
+    .btn-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    @media (max-width: 500px) {
+      .btn-grid { grid-template-columns: 1fr; }
+    }
+    /* Progress */
+    .progress-wrap {
+      margin-top: 14px;
+      background: rgba(0, 0, 0, 0.4);
+      border-radius: 12px;
+      height: 14px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--rand-cyan), var(--green));
+      transition: width 0.25s ease;
+    }
+    /* Couch Remote D-Pad */
+    .dpad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      max-width: 310px;
+      margin: 12px auto;
+    }
+    .dpad .btn {
+      min-height: 60px;
+      font-size: 18px;
+      border-radius: 16px;
+    }
+    .dpad .ok-btn {
+      background: linear-gradient(135deg, var(--rand-gold), #D99B00);
+      color: #141824;
+      font-size: 20px;
+      font-weight: 800;
+    }
+    /* App List in Advanced Mode */
+    .item-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    }
+    .item-row:last-child { border-bottom: none; }
+    .item-info h3 { margin: 0; font-size: 15px; }
+    .item-info p { margin: 2px 0 0; font-size: 13px; color: var(--muted); }
+    .input-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .input-row input {
+      flex: 1;
+      min-height: 48px;
+      border-radius: 12px;
+      border: 1px solid var(--card-border);
+      background: rgba(0, 0, 0, 0.35);
+      color: var(--text);
+      padding: 0 14px;
+      font-size: 16px;
+    }
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1E2638;
+      color: #fff;
+      border: 1px solid var(--rand-cyan);
+      padding: 12px 20px;
+      border-radius: 999px;
+      font-size: 15px;
+      font-weight: 600;
+      box-shadow: 0 10px 28px rgba(0,0,0,0.5);
+      z-index: 100;
+      display: none;
+    }
+    .footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 28px;
+    }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <img src="/icon.png" alt="MoBox" class="logo" onerror="this.style.display='none'" />
+      <div class="brand">
+        <h1>MoBox</h1>
+        <p id="subHeader">Mi Box & Android TV Setup • Simple & Advanced</p>
+      </div>
+    </div>
+
+    <div class="mode-bar">
+      <button class="mode-btn active" id="tabSimple" onclick="setMode('simple')">Simple (75)</button>
+      <button class="mode-btn" id="tabRemote" onclick="setMode('remote')">TV Remote</button>
+      <button class="mode-btn" id="tabAdvanced" onclick="setMode('advanced')">Advanced (35)</button>
+    </div>
+
+    <!-- CONNECTION CARD (Always visible) -->
+    <div class="card">
+      <h2>
+        <span id="connTitle">Looking for your Mi Box...</span>
+        <span class="badge warn" id="connBadge">Scanning</span>
+      </h2>
+      <div class="status-box" id="connSummary">Make sure your TV and Mi Box are on the same Wi-Fi.</div>
+      <div class="btn-grid">
+        <button class="btn" onclick="refreshStatus(true)">🔍 Find My Mi Box</button>
+        <button class="btn" onclick="toggleIpBox()">⌨️ Enter IP Address</button>
+      </div>
+      <div class="input-row hidden" id="ipRow">
+        <input type="text" id="ipInput" placeholder="e.g. 192.168.0.117" value="192.168.0.117" />
+        <button class="btn btn-primary" onclick="connectManualIp()">Connect</button>
+      </div>
+    </div>
+
+    <!-- SIMPLE (75-YEAR-OLD) MODE -->
+    <div id="viewSimple">
+      <div class="card">
+        <h2>✨ Make My Mi Box Ready (All-in-One)</h2>
+        <p style="margin: 0 0 14px; font-size: 15px; color: var(--muted);">
+          Automatically detects your exact Mi Box / Android TV model (32-bit or 64-bit) and sets up:
+          <br>• Clean Apple TV-style home screen (<b>Hume</b>), <b>TV Live</b>, <b>Ad-Free YouTube</b>, <b>Browser</b> & <b>SlamVision</b>
+          <br>• <b>4K Outer Space & Nature Slideshow</b> (Aerial Views) after 5 minutes idle
+          <br>• <b>TV-Remote Auto-Wake Fix</b> so turning on your TV always finds the box awake
+          <br>• <b>Mouse & Scroll Helper (MATVT)</b> — while keeping all your existing apps safe
+        </p>
+        <button class="btn btn-hero" id="btnHeroSetup" onclick="runSimpleSetup()">
+          🚀 Set Up My Mi Box Now
+        </button>
+        <div class="progress-wrap">
+          <div class="progress-bar" id="progBar"></div>
+        </div>
+        <p id="progLabel" style="margin: 8px 0 0; font-size: 14px; color: var(--muted);">
+          Ready whenever you are.
+        </p>
+      </div>
+
+      <div class="card">
+        <h2>🌌 4K Space Slideshow & Apple Magic Mouse</h2>
+        <div class="btn-grid">
+          <button class="btn btn-cyan" onclick="doAction('slideshow')">
+            🌌 Start 4K Space & Nature Slideshow
+          </button>
+          <button class="btn btn-gold" onclick="doAction('bluetooth')">
+            🖱️ Pair Apple Magic Mouse on TV
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- COUCH TV REMOTE MODE -->
+    <div id="viewRemote" class="hidden">
+      <div class="card">
+        <h2>📺 Couch Remote Control</h2>
+        <p style="margin:0; font-size:14px; color:var(--muted);">Tap to control your Mi Box right from your phone:</p>
+        <div class="dpad">
+          <button class="btn" onclick="sendKey('BACK')">↩ Back</button>
+          <button class="btn" onclick="sendKey('UP')">▲</button>
+          <button class="btn" onclick="sendKey('HOME')">⌂ Home</button>
+          <button class="btn" onclick="sendKey('LEFT')">◀</button>
+          <button class="btn ok-btn" onclick="sendKey('OK')">OK</button>
+          <button class="btn" onclick="sendKey('RIGHT')">▶</button>
+          <button class="btn" onclick="sendKey('VOL_DOWN')">🔉 −</button>
+          <button class="btn" onclick="sendKey('DOWN')">▼</button>
+          <button class="btn" onclick="sendKey('VOL_UP')">🔊 +</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>⚡ Quick Launch on TV</h2>
+        <div class="btn-grid">
+          <button class="btn" onclick="launchApp('mytv')">📺 TV Live (IPTV)</button>
+          <button class="btn" onclick="launchApp('smarttube')">▶️ SmartTube (YouTube)</button>
+          <button class="btn" onclick="launchApp('slamvision')">🤼 SlamVision Wrestling</button>
+          <button class="btn" onclick="launchApp('tvbro')">🌐 TV Bro Browser</button>
+          <button class="btn btn-cyan" onclick="doAction('slideshow')">🌌 4K Space Slideshow</button>
+          <button class="btn btn-gold" onclick="doAction('bluetooth')">🖱️ Bluetooth Pairing</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADVANCED (35-YEAR-OLD) MODE -->
+    <div id="viewAdvanced" class="hidden">
+      <div class="card">
+        <h2>🛠️ Instant Tweaks & Fixes</h2>
+        <div class="btn-grid">
+          <button class="btn" onclick="doAction('tv_wake_fix')">⚡ Apply TV-Remote Auto-Wake Fix</button>
+          <button class="btn" onclick="doAction('enable_matvt')">🖱️ Activate MATVT Mouse Helper</button>
+          <button class="btn" onclick="setHome('hume')">🍎 Set Hume as Home Screen</button>
+          <button class="btn" onclick="setHome('beam')">🧱 Set Beam as Home Screen</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>📦 Model-Matched Apps (<span id="archBadge">Auto-ABI</span>)</h2>
+        <p style="margin:0 0 10px; font-size:13px; color:var(--muted);">
+          Automatically selects 32-bit (armeabi-v7a) or 64-bit (arm64-v8a) for your connected box.
+        </p>
+        <div id="appsList"></div>
+      </div>
+
+      <div class="card">
+        <h2>🧹 Safe Debloat (Non-Destructive)</h2>
+        <p style="margin:0 0 10px; font-size:13px; color:var(--muted);">
+          Uses <code>pm disable-user</code> — nothing is deleted and anything can be re-enabled in one tap.
+        </p>
+        <button class="btn btn-primary" style="width:100%; margin-bottom:12px;" onclick="doAction('debloat_safe')">
+          🧹 Disable All Recommended Bloatware
+        </button>
+        <div id="bloatList"></div>
+      </div>
+
+      <div class="card">
+        <h2>🔬 Firmware, Kernel HID & Log</h2>
+        <div class="status-box" id="fwDetail" style="font-family: ui-monospace, Menlo, monospace; font-size: 13px;">
+          Connect to inspect firmware and kernel drivers.
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      Made by Morad &nbsp;•&nbsp; <span id="verFooter">MoBox v2.1.0</span>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    let currentState = null;
+    let pollTimer = null;
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.style.display = 'block';
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(() => { t.style.display = 'none'; }, 3200);
+    }
+
+    function setMode(m) {
+      document.getElementById('tabSimple').classList.toggle('active', m === 'simple');
+      document.getElementById('tabRemote').classList.toggle('active', m === 'remote');
+      document.getElementById('tabAdvanced').classList.toggle('active', m === 'advanced');
+      document.getElementById('viewSimple').classList.toggle('hidden', m !== 'simple');
+      document.getElementById('viewRemote').classList.toggle('hidden', m !== 'remote');
+      document.getElementById('viewAdvanced').classList.toggle('hidden', m !== 'advanced');
+    }
+
+    function toggleIpBox() {
+      document.getElementById('ipRow').classList.toggle('hidden');
+    }
+
+    async function refreshStatus(scan = false) {
+      try {
+        const res = await fetch('/api/status' + (scan ? '?scan=1' : ''));
+        const data = await res.json();
+        currentState = data;
+        renderState(data);
+      } catch (e) {
+        document.getElementById('connTitle').textContent = 'Offline / Standalone Mode';
+        document.getElementById('connBadge').textContent = 'Standalone';
+        document.getElementById('connSummary').textContent =
+          'Open MoBox.app on your Mac (or run python3 -m fixer.web) to bridge live ADB commands over Wi-Fi.';
+      }
+    }
+
+    function renderState(data) {
+      document.getElementById('verFooter').textContent = `MoBox v${data.version} (${data.commit})`;
+      const badge = document.getElementById('connBadge');
+      if (data.connected && data.firmware) {
+        const fw = data.firmware;
+        document.getElementById('connTitle').textContent = `✓ Connected to ${fw.model} (${data.serial})`;
+        badge.textContent = 'Connected';
+        badge.className = 'badge ok';
+        document.getElementById('connSummary').textContent = fw.plain_summary;
+        document.getElementById('archBadge').textContent = fw.arch_label;
+        document.getElementById('fwDetail').textContent = [
+          `Model / Product  : ${fw.model} / ${fw.product}`,
+          `Android / SDK    : Android ${fw.android_release} (SDK ${fw.sdk})`,
+          `Firmware Build   : ${fw.build_id} (patch ${fw.security_patch})`,
+          `Linux Kernel     : ${fw.kernel}`,
+          `CPU Architecture : ${fw.arch_label}`,
+          `Free Storage/RAM : ${fw.free_storage_mb} MB free / ${fw.free_ram_mb} MB RAM`,
+          `HDMI-CEC Wake    : ${fw.tv_wake_ready ? 'READY (mAutoTvOff=false, sleep=-1)' : 'NEEDS FIX'}`,
+          `Kernel HID       : ${(fw.hid_drivers || []).join(', ')} (hid-magicmouse: ${fw.has_magicmouse_driver ? 'YES' : 'NO'})`,
+          `MATVT Helper     : ${fw.matvt_active ? 'ACTIVE' : 'Inactive'}`,
+          `4K Slideshow     : ${fw.aerialviews_active ? 'ACTIVE (5-min timeout)' : 'Inactive'}`,
+          '',
+          '--- Recent Log ---',
+          ...(data.logs || []).slice(-12)
+        ].join('\n');
+      } else {
+        document.getElementById('connTitle').textContent = 'Mi Box not connected yet';
+        badge.textContent = 'Not Connected';
+        badge.className = 'badge warn';
+      }
+
+      if (data.progress) {
+        const pct = data.progress.total ? Math.round((data.progress.step / data.progress.total) * 100) : 0;
+        document.getElementById('progBar').style.width = `${pct}%`;
+        document.getElementById('progLabel').textContent = data.progress.label;
+      }
+
+      const appsEl = document.getElementById('appsList');
+      if (appsEl && data.apps) {
+        appsEl.innerHTML = data.apps.map(a => `
+          <div class="item-row">
+            <div class="item-info">
+              <h3>${a.title} ${a.installed ? '<span class="badge ok">Installed</span>' : ''}</h3>
+              <p>${a.detail}</p>
+            </div>
+            <button class="btn" style="min-height:42px; font-size:14px; flex-shrink:0;"
+              onclick="installApp('${a.key}')">
+              ${a.installed ? 'Reinstall' : 'Install'}
+            </button>
+          </div>
+        `).join('');
+      }
+
+      const bloatEl = document.getElementById('bloatList');
+      if (bloatEl && data.bloat) {
+        bloatEl.innerHTML = data.bloat.slice(0, 20).map(b => `
+          <div class="item-row">
+            <div class="item-info">
+              <h3>${b.title} ${b.disabled ? '<span class="badge warn">Disabled</span>' : ''}</h3>
+              <p>${b.category} — ${b.detail}</p>
+            </div>
+            <button class="btn" style="min-height:42px; font-size:14px; flex-shrink:0;"
+              onclick="togglePkg('${b.package}', ${!b.disabled})">
+              ${b.disabled ? 'Restore' : 'Disable'}
+            </button>
+          </div>
+        `).join('');
+      }
+    }
+
+    async function connectManualIp() {
+      const host = document.getElementById('ipInput').value.trim();
+      if (!host) return;
+      showToast(`Connecting to ${host}...`);
+      const res = await fetch('/api/connect', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({host})
+      });
+      const out = await res.json();
+      if (out.ok) {
+        showToast('✓ Connected to your Mi Box!');
+        renderState(out.state);
+      } else {
+        showToast(out.error || 'Could not connect.');
+      }
+    }
+
+    async function runSimpleSetup() {
+      showToast('Starting MoBox All-in-One Setup...');
+      await fetch('/api/simple-setup', {method: 'POST'});
+      if (!pollTimer) {
+        pollTimer = setInterval(async () => {
+          const r = await fetch('/api/progress');
+          const p = await r.json();
+          const pct = p.total ? Math.round((p.step / p.total) * 100) : 0;
+          document.getElementById('progBar').style.width = `${pct}%`;
+          document.getElementById('progLabel').textContent = p.label;
+          if (!p.busy) {
+            clearInterval(pollTimer);
+            pollTimer = null;
+            refreshStatus(false);
+            showToast('✓ Setup complete!');
+          }
+        }, 1200);
+      }
+    }
+
+    async function doAction(kind, extra = {}) {
+      const res = await fetch('/api/action', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({kind, ...extra})
+      });
+      const out = await res.json();
+      if (out.message) showToast(out.message);
+      else if (!out.ok && out.error) showToast(out.error);
+      refreshStatus(false);
+    }
+
+    function sendKey(key) { doAction('key', {key}); }
+    function launchApp(app) { doAction('launch_app', {app}); }
+    function setHome(app) { doAction('set_home', {app}); }
+    function installApp(app) { doAction('install_app', {app}); }
+    function togglePkg(pkg, disable) { doAction('toggle_package', {package: pkg, disable}); }
+
+    refreshStatus(false);
+  </script>
+</body>
+</html>

@@ -11,3 +11,7 @@ dist/
 !playlists/world.m3u
 *.log
 .pytest_cache/
+
+MoBoxApp/.build/
+MoBoxApp/MoBox.app/
+MoBoxApp/Resources/AppIcon.iconset/

@@ -69,6 +69,16 @@ class MoBoxTests(unittest.TestCase):
         self.assertIs(gui.FixerApp, gui.MoBoxApp)
         self.assertIn("MoBox", gui.APP_TITLE)
 
+    def test_web_app_and_icon_assets_exist(self):
+        from pathlib import Path
+        from fixer import web
+
+        root = Path(web.__file__).resolve().parent.parent
+        self.assertTrue((root / "web" / "index.html").is_file())
+        self.assertTrue((root / "MoBoxApp" / "make_icon.py").is_file())
+        self.assertIn("UP", web.REMOTE_KEYCODES)
+        self.assertEqual(web.REMOTE_KEYCODES["OK"], 23)
+
 
 if __name__ == "__main__":
     unittest.main()
