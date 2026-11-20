@@ -361,6 +361,20 @@ class MoBoxHTTPHandler(BaseHTTPRequestHandler):
                 self._send_json({"ok": ok})
                 return
 
+            if kind == "pointer":
+                msg = str(body.get("cmd", "")).strip()
+                host = (adb.serial or "").split(":")[0]
+                if not host or not msg:
+                    self._send_json({"ok": False})
+                    return
+                sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                try:
+                    sock.sendto(msg.encode("utf-8"), (host, 8766))
+                finally:
+                    sock.close()
+                self._send_json({"ok": True})
+                return
+
             if kind == "slideshow":
                 adb.enable_aerial_views_screensaver()
                 ok = adb.start_screensaver_now()

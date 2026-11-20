@@ -429,7 +429,19 @@
 
     <!-- 2. TV REMOTE MODE -->
     <div id="viewRemote" class="hidden">
-      <p class="scope-note">Sends standard Android TV key presses over Wi-Fi.</p>
+      <p class="scope-note">Sends standard Android TV key presses and live pointer gestures over Wi-Fi.</p>
+      <div class="card">
+        <h3 class="list-title">Air Mouse &amp; Touchpad</h3>
+        <p class="list-desc" style="margin-bottom:10px;">Slide your finger below to move the gold pointer on your TV, or tap to click.</p>
+        <div id="touchPad" style="height:160px; border-radius:12px; background:var(--bg); border:1px solid var(--border-hi); display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:14px; touch-action:none; user-select:none;">
+          Slide thumb to move TV pointer • Tap to click
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-green" onclick="sendPtr('C')">Click Pointer</button>
+          <button class="btn" onclick="sendPtr('R')">Back / Right-Click</button>
+        </div>
+      </div>
+
       <div class="card">
         <h3 class="list-title">Directional pad</h3>
         <div class="dpad">
@@ -694,6 +706,38 @@
     }
 
     function sendKey(key) { doAction('key', {key}); }
+    function sendPtr(cmd) {
+      fetch('/api/action', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({kind: 'pointer', cmd})
+      }).catch(() => {});
+    }
+    (function initTouchpad() {
+      const pad = document.getElementById('touchPad');
+      if (!pad) return;
+      let lx = 0, ly = 0, moved = false, lastSend = 0, accX = 0, accY = 0;
+      pad.addEventListener('touchstart', e => {
+        const t = e.touches[0];
+        lx = t.clientX; ly = t.clientY; moved = false;
+      }, {passive: true});
+      pad.addEventListener('touchmove', e => {
+        e.preventDefault();
+        const t = e.touches[0];
+        accX += (t.clientX - lx) * 2.2;
+        accY += (t.clientY - ly) * 2.2;
+        lx = t.clientX; ly = t.clientY;
+        if (Math.abs(accX) > 2 || Math.abs(accY) > 2) moved = true;
+        const now = Date.now();
+        if (now - lastSend > 28 && (Math.abs(accX) >= 1 || Math.abs(accY) >= 1)) {
+          sendPtr(`M ${accX.toFixed(1)} ${accY.toFixed(1)}`);
+          accX = 0; accY = 0; lastSend = now;
+        }
+      }, {passive: false});
+      pad.addEventListener('touchend', () => {
+        if (!moved) sendPtr('C');
+      });
+    })();
     function launchApp(app) { doAction('launch_app', {app}); }
     function setHome(app) { doAction('set_home', {app}); }
     function installApp(app) { doAction('install_app', {app}); }

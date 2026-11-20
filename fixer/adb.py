@@ -279,18 +279,18 @@ class Adb:
         return False
 
     def enable_matvt_service(self) -> bool:
-        """Grant MATVT overlay permission and enable its AccessibilityService."""
+        """Grant MATVT + MoBox Pointer overlay & AccessibilityService permissions."""
         pkg = "io.github.virresh.matvt"
         svc = f"{pkg}/.services.MouseEventService"
+        mobox_svc = "com.morad.mobox/.PointerService"
         self.shell_ok(f"appops set {pkg} SYSTEM_ALERT_WINDOW allow")
+        self.shell_ok("appops set com.morad.mobox SYSTEM_ALERT_WINDOW allow")
         cur = self.shell("settings get secure enabled_accessibility_services").strip()
-        if not cur or cur == "null":
-            new_val = svc
-        elif svc in cur.split(":"):
-            new_val = cur
-        else:
-            new_val = f"{cur}:{svc}"
-        ok1 = self.put_setting("secure", "enabled_accessibility_services", new_val)
+        parts = [p for p in cur.split(":") if p and p != "null"]
+        for target in (svc, mobox_svc):
+            if target not in parts:
+                parts.append(target)
+        ok1 = self.put_setting("secure", "enabled_accessibility_services", ":".join(parts))
         ok2 = self.put_setting("secure", "accessibility_enabled", 1)
         return ok1 and ok2
 

@@ -61,6 +61,8 @@ javac --release 11 \
     -cp "$ANDROID_JAR" \
     -d "$BUILD/classes" \
     "$HERE/src/com/morad/mobox/MainActivity.java" \
+    "$HERE/src/com/morad/mobox/PointerService.java" \
+    "$HERE/src/com/morad/mobox/CursorView.java" \
     "$BUILD/gen/com/morad/mobox/R.java"
 
 # 4. Package classes.jar and convert to classes.dex with d8

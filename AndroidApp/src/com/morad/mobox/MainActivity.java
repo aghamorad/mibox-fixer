@@ -12,6 +12,10 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.StateListDrawable;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.net.Uri;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
@@ -24,6 +28,7 @@ import android.os.StatFs;
 import android.provider.Settings;
 import android.util.TypedValue;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
@@ -43,7 +48,10 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.net.HttpURLConnection;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URL;
@@ -60,7 +68,7 @@ import java.util.concurrent.Future;
  * 100% native Android UI (no WebView) so D-Pad remotes (OK / Enter),
  * Bluetooth mice, and phone touchscreens all focus and click reliably.
  */
-public class MainActivity extends Activity {
+public class MainActivity extends Activity implements SensorEventListener {
 
     private static final String PLAYLIST_URL =
         "https://raw.githubusercontent.com/aghamorad/mibox-fixer/main/playlists/world.m3u";
@@ -124,9 +132,29 @@ public class MainActivity extends Activity {
     private Button heroButton;
     private TextView zltStatusText;
     private EditText zltPassInput;
+    private EditText airBoxIpInput;
+    private TextView airStatusText;
+    private Button airGyroBtn;
     private LinearLayout appsContainer;
     private volatile boolean busy = false;
     private volatile String discoveredBoxIp = "";
+    private SensorManager sensorManager;
+    private Sensor gyroSensor;
+    private volatile boolean airMouseOn = false;
+    private DatagramSocket udpClient;
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+        if (!airMouseOn) return;
+        float dx = -event.values[2] * 26.0f;
+        float dy = -event.values[0] * 26.0f;
+        if (Math.abs(dx) > 0.45f || Math.abs(dy) > 0.45f) {
+            sendPointerUdp(String.format("M %.1f %.1f", dx, dy));
+        }
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {}
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -223,6 +251,102 @@ public class MainActivity extends Activity {
         btnBt.setOnClickListener(v -> openSystemScreen(Settings.ACTION_BLUETOOTH_SETTINGS));
         tvCard.addView(btnBt, btnLp());
 
+        // 2B. Air Mouse & Trackpad (Phone -> Mi Box over Wi-Fi)
+        if (!isTvDevice()) {
+            sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+            if (sensorManager != null) {
+                gyroSensor = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+            }
+            LinearLayout airCard = makeCard();
+            root.addView(airCard, cardLp());
+
+            TextView airTitle = new TextView(this);
+            airTitle.setText("Air Mouse & Touchpad (Move Phone = Move TV Pointer)");
+            airTitle.setTextColor(Color.parseColor("#F4F1EA"));
+            airTitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+            airTitle.setTypeface(Typeface.DEFAULT_BOLD);
+            airCard.addView(airTitle);
+
+            airBoxIpInput = new EditText(this);
+            airBoxIpInput.setHint("Mi Box IP (tap Find Mi Box)");
+            airBoxIpInput.setText("192.168.0.117");
+            airBoxIpInput.setTextColor(Color.parseColor("#F4F1EA"));
+            airBoxIpInput.setHintTextColor(Color.parseColor("#5E677A"));
+            airBoxIpInput.setBackgroundColor(Color.parseColor("#0D0F14"));
+            airBoxIpInput.setPadding(dp(12), dp(10), dp(12), dp(10));
+            airBoxIpInput.setSingleLine(true);
+            airCard.addView(airBoxIpInput, btnLp());
+
+            Button btnFindAir = makeButton("Find Mi Box on Wi-Fi", "#1C212D", "#F4F1EA");
+            btnFindAir.setOnClickListener(v -> {
+                airStatusText.setText("Scanning Wi-Fi for Mi Box…");
+                new Thread(() -> {
+                    String ip = scanWifiForMiBox();
+                    mainHandler.post(() -> {
+                        if (!ip.isEmpty()) {
+                            airBoxIpInput.setText(ip);
+                            airStatusText.setText("Found Mi Box at " + ip);
+                        } else {
+                            airStatusText.setText("Not found automatically — enter Mi Box IP above.");
+                        }
+                    });
+                }).start();
+            });
+            airCard.addView(btnFindAir, btnLp());
+
+            airGyroBtn = makeButton("Start Air Mouse (Wave Phone to Move Pointer)", "#E5A913", "#0D0F14");
+            airGyroBtn.setOnClickListener(v -> toggleAirMouse());
+            airCard.addView(airGyroBtn, btnLp());
+
+            // Touchpad surface
+            TextView touchPad = new TextView(this);
+            touchPad.setText("Touchpad Area — Slide Thumb to Move, Tap to Click");
+            touchPad.setTextColor(Color.parseColor("#949DB0"));
+            touchPad.setGravity(Gravity.CENTER);
+            touchPad.setHeight(dp(150));
+            GradientDrawable padBg = new GradientDrawable();
+            padBg.setColor(Color.parseColor("#0D0F14"));
+            padBg.setCornerRadius(dp(12));
+            padBg.setStroke(dp(1), Color.parseColor("#353D52"));
+            touchPad.setBackground(padBg);
+            final float[] lastTouch = new float[2];
+            final boolean[] moved = new boolean[1];
+            touchPad.setOnTouchListener((v, ev) -> {
+                if (ev.getAction() == MotionEvent.ACTION_DOWN) {
+                    lastTouch[0] = ev.getX();
+                    lastTouch[1] = ev.getY();
+                    moved[0] = false;
+                    v.getParent().requestDisallowInterceptTouchEvent(true);
+                } else if (ev.getAction() == MotionEvent.ACTION_MOVE) {
+                    float dx = (ev.getX() - lastTouch[0]) * 1.9f;
+                    float dy = (ev.getY() - lastTouch[1]) * 1.9f;
+                    if (Math.abs(dx) > 1.5f || Math.abs(dy) > 1.5f) moved[0] = true;
+                    lastTouch[0] = ev.getX();
+                    lastTouch[1] = ev.getY();
+                    sendPointerUdp(String.format("M %.1f %.1f", dx, dy));
+                } else if (ev.getAction() == MotionEvent.ACTION_UP) {
+                    if (!moved[0]) sendPointerUdp("C");
+                }
+                return true;
+            });
+            airCard.addView(touchPad, btnLp());
+
+            Button btnClick = makeButton("Click Pointer (OK)", "#32B868", "#FFFFFF");
+            btnClick.setOnClickListener(v -> sendPointerUdp("C"));
+            airCard.addView(btnClick, btnLp());
+
+            Button btnBack = makeButton("Right-Click / Back", "#1C212D", "#F4F1EA");
+            btnBack.setOnClickListener(v -> sendPointerUdp("R"));
+            airCard.addView(btnBack, btnLp());
+
+            airStatusText = new TextView(this);
+            airStatusText.setText("Note: Enable MoBox Air Mouse under Accessibility on the TV once.");
+            airStatusText.setTextColor(Color.parseColor("#949DB0"));
+            airStatusText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+            airStatusText.setPadding(0, dp(8), 0, 0);
+            airCard.addView(airStatusText);
+        }
+
         // 3. ZLT X28 5G Router Card
         LinearLayout zltCard = makeCard();
         root.addView(zltCard, cardLp());
@@ -296,6 +420,52 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         rebuildAppButtons();
+    }
+
+    @Override
+    protected void onPause() {
+        if (airMouseOn && sensorManager != null) {
+            airMouseOn = false;
+            sensorManager.unregisterListener(this);
+            if (airGyroBtn != null) {
+                airGyroBtn.setText("Start Air Mouse (Wave Phone to Move Pointer)");
+            }
+        }
+        super.onPause();
+    }
+
+    private void toggleAirMouse() {
+        if (sensorManager == null || gyroSensor == null) {
+            if (airStatusText != null) airStatusText.setText("This phone has no gyroscope — use the Touchpad below!");
+            return;
+        }
+        airMouseOn = !airMouseOn;
+        if (airMouseOn) {
+            sensorManager.registerListener(this, gyroSensor, SensorManager.SENSOR_DELAY_GAME);
+            sendPointerUdp("CENTER");
+            airGyroBtn.setText("Stop Air Mouse");
+            if (airStatusText != null) airStatusText.setText("Air Mouse ON — wave your phone to move the TV pointer!");
+        } else {
+            sensorManager.unregisterListener(this);
+            airGyroBtn.setText("Start Air Mouse (Wave Phone to Move Pointer)");
+            if (airStatusText != null) airStatusText.setText("Air Mouse paused.");
+        }
+    }
+
+    private void sendPointerUdp(final String payload) {
+        final String host = airBoxIpInput != null
+            ? airBoxIpInput.getText().toString().trim()
+            : discoveredBoxIp;
+        if (host.isEmpty()) return;
+        new Thread(() -> {
+            try {
+                if (udpClient == null) udpClient = new DatagramSocket();
+                byte[] data = payload.getBytes(StandardCharsets.UTF_8);
+                DatagramPacket pkt = new DatagramPacket(
+                    data, data.length, InetAddress.getByName(host), PointerService.UDP_PORT);
+                udpClient.send(pkt);
+            } catch (Exception ignored) {}
+        }).start();
     }
 
     private void rebuildAppButtons() {
