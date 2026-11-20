@@ -375,6 +375,18 @@ class MoBoxHTTPHandler(BaseHTTPRequestHandler):
                 self._send_json({"ok": True})
                 return
 
+            if kind == "text":
+                raw_text = str(body.get("text", ""))
+                if not raw_text:
+                    self._send_json({"ok": False, "error": "Nothing to type."})
+                    return
+                # Android `input text` treats %s as space; strip unsafe shell chars
+                safe = "".join(ch for ch in raw_text if 32 <= ord(ch) < 127)
+                escaped = safe.replace("\\", "\\\\").replace(" ", "%s").replace("'", "\\'").replace('"', '\\"').replace("&", "\\&").replace(";", "\\;")
+                ok = adb.shell_ok(f"input text {escaped}")
+                self._send_json({"ok": ok, "message": "Sent text to TV" if ok else "Could not type text"})
+                return
+
             if kind == "slideshow":
                 adb.enable_aerial_views_screensaver()
                 ok = adb.start_screensaver_now()

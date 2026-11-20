@@ -454,15 +454,101 @@ struct HomeView: View {
 
 struct RemoteView: View {
     @EnvironmentObject private var model: AppModel
+    @State private var tvText = ""
+    @State private var lastDrag: CGPoint?
 
     var body: some View {
         PageScroll {
             PageHeader(
                 title: "TV remote",
-                subtitle: "Control your Mi Box from this Mac or launch any installed app directly."
+                subtitle: "Trackpad pointer, directional pad, keyboard input, and quick app launch."
             )
 
-            ScopeNote("Sends standard Android TV key presses over Wi-Fi. Does not change any settings.")
+            ScopeNote("Streams pointer gestures directly to your Mi Box over Wi-Fi (UDP 8766) and sends standard TV keys.")
+
+            // Trackpad Card
+            Card {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text("Mac-to-TV Trackpad").font(.headline)
+                        Spacer()
+                        Button("Center") { model.sendPointerUDP("CENTER") }
+                            .controlSize(.small)
+                        Button("Scroll ↑") { model.sendPointerUDP("S -35") }
+                            .controlSize(.small)
+                        Button("Scroll ↓") { model.sendPointerUDP("S 35") }
+                            .controlSize(.small)
+                    }
+
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(Color.primary.opacity(0.04))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .strokeBorder(Color.primary.opacity(0.12))
+                            )
+                        VStack(spacing: 4) {
+                            Image(systemName: "cursorarrow.motionlines")
+                                .font(.title2)
+                                .foregroundStyle(.secondary)
+                            Text("Drag here to move the gold pointer on your TV • Click to tap")
+                                .font(.callout)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .frame(height: 170)
+                    .contentShape(Rectangle())
+                    .gesture(
+                        DragGesture(minimumDistance: 0)
+                            .onChanged { value in
+                                if let prev = lastDrag {
+                                    let dx = (value.location.x - prev.x) * 2.4
+                                    let dy = (value.location.y - prev.y) * 2.4
+                                    if abs(dx) > 0.5 || abs(dy) > 0.5 {
+                                        model.sendPointerUDP(String(format: "M %.1f %.1f", dx, dy))
+                                    }
+                                }
+                                lastDrag = value.location
+                            }
+                            .onEnded { value in
+                                let dist = hypot(value.translation.width, value.translation.height)
+                                lastDrag = nil
+                                if dist < 4 {
+                                    model.sendPointerUDP("C")
+                                }
+                            }
+                    )
+
+                    HStack(spacing: 10) {
+                        Button("Click Pointer (OK)") { model.sendPointerUDP("C") }
+                            .buttonStyle(.borderedProminent)
+                        Button("Right-Click / Back") { model.sendPointerUDP("R") }
+                            .buttonStyle(.bordered)
+                        Spacer()
+                        Button("Play / Pause") {
+                            Task { await model.performAction("key", extra: ["key": "PLAY_PAUSE"]) }
+                        }
+                        Button("Mute") {
+                            Task { await model.performAction("key", extra: ["key": "MUTE"]) }
+                        }
+                    }
+                }
+            }
+
+            // Type on TV Card
+            Card {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Type on TV").font(.headline)
+                    HStack(spacing: 10) {
+                        TextField("Type a search query, URL, or password…", text: $tvText)
+                            .textFieldStyle(.roundedBorder)
+                            .onSubmit { sendText() }
+                        Button("Send to TV") { sendText() }
+                            .buttonStyle(.borderedProminent)
+                            .disabled(tvText.trimmingCharacters(in: .whitespaces).isEmpty)
+                    }
+                }
+            }
 
             HStack(alignment: .top, spacing: 16) {
                 Card {
@@ -517,6 +603,14 @@ struct RemoteView: View {
                 }
             }
         }
+    }
+
+    private func sendText() {
+        let trimmed = tvText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        let payload = trimmed
+        tvText = ""
+        Task { await model.performAction("text", extra: ["text": payload]) }
     }
 
     private func keyButton(_ label: String, key: String, icon: String) -> some View {

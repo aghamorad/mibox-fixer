@@ -217,6 +217,29 @@ final class AppModel: ObservableObject {
         startProgressPolling()
     }
 
+    func sendPointerUDP(_ cmd: String) {
+        let host = (status.serial?.split(separator: ":").first.map(String.init)) ?? manualIP
+        guard !host.isEmpty else { return }
+        DispatchQueue.global(qos: .userInteractive).async {
+            let fd = socket(AF_INET, SOCK_DGRAM, 0)
+            guard fd >= 0 else { return }
+            defer { close(fd) }
+            var addr = sockaddr_in()
+            addr.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
+            addr.sin_family = sa_family_t(AF_INET)
+            addr.sin_port = UInt16(8766).bigEndian
+            addr.sin_addr.s_addr = inet_addr(host)
+            let bytes = Array(cmd.utf8)
+            _ = bytes.withUnsafeBytes { rawBuf in
+                withUnsafePointer(to: &addr) {
+                    $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { sa in
+                        sendto(fd, rawBuf.baseAddress, bytes.count, 0, sa, socklen_t(MemoryLayout<sockaddr_in>.size))
+                    }
+                }
+            }
+        }
+    }
+
     func performAction(_ kind: String, extra: [String: Any] = [:]) async {
         guard let url = URL(string: "\(apiBase)/api/action") else { return }
         var body: [String: Any] = ["kind": kind]

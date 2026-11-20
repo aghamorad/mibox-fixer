@@ -431,19 +431,35 @@
     <div id="viewRemote" class="hidden">
       <p class="scope-note">Sends standard Android TV key presses and live pointer gestures over Wi-Fi.</p>
       <div class="card">
-        <h3 class="list-title">Air Mouse &amp; Touchpad</h3>
-        <p class="list-desc" style="margin-bottom:10px;">Slide your finger below to move the gold pointer on your TV, or tap to click.</p>
-        <div id="touchPad" style="height:160px; border-radius:12px; background:var(--bg); border:1px solid var(--border-hi); display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:14px; touch-action:none; user-select:none;">
-          Slide thumb to move TV pointer • Tap to click
+        <h3 class="list-title">Trackpad &amp; Scroll</h3>
+        <p class="list-desc" style="margin-bottom:10px;">Slide on the pad to move the pointer, tap to click, or use the right strip to scroll.</p>
+        <div style="display:flex; gap:10px; align-items:stretch;">
+          <div id="touchPad" style="flex:1; height:175px; border-radius:12px; background:var(--bg); border:1px solid var(--border-hi); display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:14px; touch-action:none; user-select:none;">
+            Slide to move • Tap to click
+          </div>
+          <div id="scrollStrip" style="width:52px; height:175px; border-radius:12px; background:var(--bg); border:1px solid var(--border-hi); display:flex; flex-direction:column; align-items:center; justify-content:space-between; padding:10px 0; color:var(--muted); font-size:12px; touch-action:none; user-select:none;">
+            <span>▲</span>
+            <span style="writing-mode:vertical-rl; font-size:11px;">SCROLL</span>
+            <span>▼</span>
+          </div>
         </div>
-        <div class="btn-row">
-          <button class="btn btn-green" onclick="sendPtr('C')">Click Pointer</button>
-          <button class="btn" onclick="sendPtr('R')">Back / Right-Click</button>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:10px;">
+          <button class="btn btn-green" onclick="sendPtr('C')">Click</button>
+          <button class="btn" onclick="sendPtr('R')">Back</button>
+          <button class="btn" onclick="sendPtr('CENTER')">Center</button>
         </div>
       </div>
 
       <div class="card">
-        <h3 class="list-title">Directional pad</h3>
+        <h3 class="list-title">Type on TV</h3>
+        <div class="input-bar" style="margin-top:8px;">
+          <input type="text" id="tvText" placeholder="Search or type a URL…" />
+          <button class="btn btn-primary" style="width:auto;" onclick="sendTextToTv()">Send</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 class="list-title">Directional pad &amp; media</h3>
         <div class="dpad">
           <button class="btn" onclick="sendKey('BACK')">Back</button>
           <button class="btn" onclick="sendKey('UP')">Up</button>
@@ -454,6 +470,11 @@
           <button class="btn" onclick="sendKey('VOL_DOWN')">Vol −</button>
           <button class="btn" onclick="sendKey('DOWN')">Down</button>
           <button class="btn" onclick="sendKey('VOL_UP')">Vol +</button>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:10px;">
+          <button class="btn" style="min-height:42px; font-size:13px;" onclick="sendKey('PLAY_PAUSE')">Play / Pause</button>
+          <button class="btn" style="min-height:42px; font-size:13px;" onclick="sendKey('MUTE')">Mute</button>
+          <button class="btn" style="min-height:42px; font-size:13px;" onclick="sendKey('MENU')">Menu</button>
         </div>
       </div>
 
@@ -737,7 +758,30 @@
       pad.addEventListener('touchend', () => {
         if (!moved) sendPtr('C');
       });
+
+      const strip = document.getElementById('scrollStrip');
+      if (strip) {
+        let sy = 0, sLast = 0;
+        strip.addEventListener('touchstart', e => { sy = e.touches[0].clientY; }, {passive: true});
+        strip.addEventListener('touchmove', e => {
+          e.preventDefault();
+          const curY = e.touches[0].clientY;
+          const dy = curY - sy;
+          sy = curY;
+          const now = Date.now();
+          if (now - sLast > 55 && Math.abs(dy) > 2) {
+            sendPtr(`S ${(-dy * 1.5).toFixed(1)}`);
+            sLast = now;
+          }
+        }, {passive: false});
+      }
     })();
+    function sendTextToTv() {
+      const inp = document.getElementById('tvText');
+      if (!inp || !inp.value.trim()) return;
+      doAction('text', {text: inp.value});
+      inp.value = '';
+    }
     function launchApp(app) { doAction('launch_app', {app}); }
     function setHome(app) { doAction('set_home', {app}); }
     function installApp(app) { doAction('install_app', {app}); }
