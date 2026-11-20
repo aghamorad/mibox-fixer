@@ -310,8 +310,12 @@ class Adb:
         return ok1 and ok2
 
     def start_screensaver_now(self) -> bool:
-        """Launch the active Android TV screensaver (DreamService) immediately."""
-        return self.shell_ok("cmd dreams start-dreaming")
+        """Launch Aerial Views 4K Space & Nature slideshow on the TV (Android 9+ safe)."""
+        out = self.shell("cmd dreams start-dreaming").strip().lower()
+        if out and "no shell command" not in out and "error" not in out:
+            return True
+        # Android 9 (MIBOX4) has no `cmd dreams start-dreaming`; open Aerial Views directly.
+        return self.launch("com.neilturner.aerialviews/.ui.MainActivity")
 
     def disconnect(self, target: Optional[str] = None) -> None:
         self.run(["disconnect"] + ([target] if target else []), timeout=15)
