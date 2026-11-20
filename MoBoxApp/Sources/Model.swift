@@ -73,8 +73,9 @@ struct EngineStatus: Codable, Equatable {
 enum UpdateState: Equatable {
     case idle
     case checking
-    case upToDate(String)
-    case available(sha: String, message: String)
+    case upToDate
+    case available(summary: String)
+    case updating
     case failed(String)
 }
 
@@ -310,15 +311,60 @@ final class AppModel: ObservableObject {
                 let commitDict = json["commit"] as? [String: Any]
                 let msg = ((commitDict?["message"] as? String) ?? "").components(separatedBy: "\n").first ?? ""
                 if buildCommit != "unknown" && buildCommit != "local" && shortRemote != buildCommit {
-                    update = .available(sha: shortRemote, message: msg)
+                    update = .available(summary: msg)
                 } else {
-                    update = .upToDate(shortRemote)
+                    update = .upToDate
                 }
             } else {
-                update = .failed("Could not read GitHub reply")
+                update = .failed("Could not check for updates")
             }
         } catch {
             update = .failed("Offline")
+        }
+    }
+
+    func installUpdate() async {
+        guard case .available = update else { return }
+        update = .updating
+        notice = "Downloading the latest MoBox update…"
+        let zipURL = URL(string: "https://raw.githubusercontent.com/aghamorad/mibox-fixer/main/docs/downloads/MoBox-Mac-universal.zip")!
+        do {
+            let (tmpZip, _) = try await URLSession.shared.download(from: zipURL)
+            let workDir = FileManager.default.temporaryDirectory.appendingPathComponent("mobox-update-\(UUID().uuidString)")
+            try FileManager.default.createDirectory(at: workDir, withIntermediateDirectories: true)
+
+            let unzip = Process()
+            unzip.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")
+            unzip.arguments = ["-xk", tmpZip.path, workDir.path]
+            try unzip.run()
+            unzip.waitUntilExit()
+
+            let newApp = workDir.appendingPathComponent("MoBox.app")
+            guard unzip.terminationStatus == 0,
+                  FileManager.default.fileExists(atPath: newApp.appendingPathComponent("Contents/MacOS/MoBox").path) else {
+                update = .failed("Downloaded update could not be unpacked.")
+                return
+            }
+
+            let targetApp = Bundle.main.bundleURL.path.hasSuffix(".app")
+                ? Bundle.main.bundleURL
+                : URL(fileURLWithPath: "/Applications/MoBox.app")
+            let trashApp = FileManager.default.homeDirectoryForCurrentUser
+                .appendingPathComponent(".Trash/MoBox-old-\(Int(Date().timeIntervalSince1970)).app")
+
+            stopBackend()
+            if FileManager.default.fileExists(atPath: targetApp.path) {
+                try FileManager.default.moveItem(at: targetApp, to: trashApp)
+            }
+            try FileManager.default.moveItem(at: newApp, to: targetApp)
+
+            let relaunch = Process()
+            relaunch.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+            relaunch.arguments = ["-n", targetApp.path]
+            try relaunch.run()
+            NSApp.terminate(nil)
+        } catch {
+            update = .failed("Update failed: \(error.localizedDescription)")
         }
     }
 }

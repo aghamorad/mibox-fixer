@@ -192,23 +192,25 @@ struct RootView: View {
         case .checking:
             HStack(spacing: 5) {
                 ProgressView().controlSize(.mini)
-                Text("Checking GitHub…").font(.caption2).foregroundStyle(.secondary)
+                Text("Checking for updates…").font(.caption2).foregroundStyle(.secondary)
             }
-        case .upToDate(let sha):
-            Text("Up to date (\(sha))")
+        case .upToDate:
+            Text("Up to date")
                 .font(.caption2).foregroundStyle(.secondary)
-        case .available(let sha, let msg):
+        case .available:
             Button {
-                if let url = URL(string: "https://github.com/aghamorad/mibox-fixer") {
-                    NSWorkspace.shared.open(url)
-                }
+                Task { await model.installUpdate() }
             } label: {
-                Label("New commit \(sha): \(msg)", systemImage: "arrow.down.circle.fill")
-                    .font(.caption2)
-                    .lineLimit(1)
+                Label("New update ready — Click to update", systemImage: "arrow.down.circle.fill")
+                    .font(.caption2.weight(.semibold))
             }
             .buttonStyle(.plain)
             .foregroundStyle(Color.accentColor)
+        case .updating:
+            HStack(spacing: 5) {
+                ProgressView().controlSize(.mini)
+                Text("Updating MoBox…").font(.caption2).foregroundStyle(.secondary)
+            }
         case .failed(let reason):
             Text(reason).font(.caption2).foregroundStyle(.secondary)
         }
@@ -236,6 +238,30 @@ struct HomeView: View {
             )
 
             ScopeNote("Installs missing apps and fixes sleep and remote settings. It never deletes your existing apps or data.")
+
+            if case .available(let summary) = model.update {
+                Card {
+                    HStack(spacing: 14) {
+                        Image(systemName: "arrow.down.circle.fill")
+                            .font(.title2)
+                            .foregroundStyle(Color.accentColor)
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("A new update for MoBox is ready")
+                                .font(.headline)
+                            Text(summary.isEmpty ? "Includes the latest improvements and fixes." : summary)
+                                .font(.callout)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(2)
+                        }
+                        Spacer()
+                        Button("Update Now") {
+                            Task { await model.installUpdate() }
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
+                    }
+                }
+            }
 
             heroCard
 
