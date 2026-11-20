@@ -135,15 +135,17 @@ class Fixer:
 
         if plan.stay_awake:
             has_aerial = self.adb.is_installed("com.neilturner.aerialviews")
+            # Keep stay_on_while_plugged_in=7 (mStayOn=true) ALWAYS on Android 9 Mi Box 4;
+            # setting it to 0 lets PowerManager drop into deep sleep when the TV turns off.
             awake_settings = [
-                ("global", "stay_on_while_plugged_in", 0 if has_aerial else 7),
+                ("global", "stay_on_while_plugged_in", 7),
                 ("global", "hdmi_control_enabled", 1),
                 ("global", "hdmi_control_one_touch_play_enabled", 1),
                 ("global", "hdmi_control_auto_device_off_enabled", 0),
                 ("global", "hdmi_control_auto_wakeup_enabled", 1),
                 ("secure", "sleep_timeout", -1),
-                ("secure", "screensaver_enabled", 1 if has_aerial else 0),
-                ("system", "screen_off_timeout", 300000 if has_aerial else 2147483647),
+                ("secure", "screensaver_enabled", 0),
+                ("system", "screen_off_timeout", 2147483647),
             ]
             all_ok = True
             for ns, key, val in awake_settings:

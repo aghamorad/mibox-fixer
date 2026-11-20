@@ -299,7 +299,7 @@ class Adb:
         return self.shell_ok("am start -a android.settings.BLUETOOTH_SETTINGS")
 
     def enable_aerial_views_screensaver(self) -> bool:
-        """Set Aerial Views as the 5-minute 4K Space & Nature slideshow screensaver."""
+        """Register Aerial Views as the DreamService (launched manually or via MoBox)."""
         pkg = "com.neilturner.aerialviews"
         dream = f"{pkg}/.ui.screensaver.DreamActivity"
         self.shell_ok(f"pm grant {pkg} android.permission.READ_EXTERNAL_STORAGE")
@@ -307,10 +307,7 @@ class Adb:
         self.shell_ok(f"appops set {pkg} SYSTEM_ALERT_WINDOW allow")
         ok1 = self.put_setting("secure", "screensaver_components", dream)
         ok2 = self.put_setting("secure", "screensaver_default_component", dream)
-        ok3 = self.put_setting("secure", "screensaver_enabled", 1)
-        ok4 = self.put_setting("secure", "screensaver_activate_on_sleep", 1)
-        ok5 = self.put_setting("secure", "screensaver_activate_on_dock", 1)
-        return ok1 and ok2 and ok3 and ok4 and ok5
+        return ok1 and ok2
 
     def start_screensaver_now(self) -> bool:
         """Launch the active Android TV screensaver (DreamService) immediately."""
