@@ -5,37 +5,43 @@ import android.app.PendingIntent;
 import android.app.UiModeManager;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageInfo;
 import android.content.pm.PackageInstaller;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
+import android.graphics.Color;
+import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.StateListDrawable;
 import android.net.Uri;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.StatFs;
 import android.provider.Settings;
-import android.view.KeyEvent;
+import android.util.TypedValue;
+import android.view.Gravity;
+import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
-import android.webkit.JavascriptInterface;
-import android.webkit.WebChromeClient;
-import android.webkit.WebSettings;
-import android.webkit.WebView;
-import android.webkit.WebViewClient;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.ProgressBar;
+import android.widget.ScrollView;
+import android.widget.TextView;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
@@ -50,29 +56,26 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+/**
+ * 100% native Android UI (no WebView) so D-Pad remotes (OK / Enter),
+ * Bluetooth mice, and phone touchscreens all focus and click reliably.
+ */
 public class MainActivity extends Activity {
-    private WebView webView;
-    private volatile String progressLabel = "Ready";
-    private volatile int progressStep = 0;
-    private volatile int progressTotal = 7;
-    private volatile boolean busy = false;
-    private volatile String discoveredBoxIp = "";
 
     private static final String PLAYLIST_URL =
         "https://raw.githubusercontent.com/aghamorad/mibox-fixer/main/playlists/world.m3u";
 
     private static final String[][] CORE_APPS = new String[][] {
-        // key, title, pkg, url32, url64
         {
             "hume",
-            "Hume Launcher (Apple TV-style)",
+            "Hume Launcher (Apple TV-style Home)",
             "com.petrobot.hume",
             "https://github.com/petrobot-admin/hume-launcher/releases/download/v7.8/HumeLauncher-7.8.apk",
             "https://github.com/petrobot-admin/hume-launcher/releases/download/v7.8/HumeLauncher-7.8.apk"
         },
         {
             "mytv",
-            "TV Live (Worldwide & Iran IPTV)",
+            "TV Live (2,200+ Worldwide & Iran TV)",
             "com.github.mytv.android",
             "https://github.com/mytv-android/mytv-android/releases/download/V2.2.0.219/mytv-android-tv-2.2.0.219-all-sdk23-original.apk",
             "https://github.com/mytv-android/mytv-android/releases/download/V2.2.0.219/mytv-android-tv-2.2.0.219-all-sdk23-original.apk"
@@ -100,7 +103,7 @@ public class MainActivity extends Activity {
         },
         {
             "matvt",
-            "MATVT (Mouse & Scroll Helper)",
+            "MATVT (Remote Mouse & Scroll Helper)",
             "io.github.virresh.matvt",
             "https://github.com/virresh/matvt/releases/download/v1.0.6/matvt-app-release-v1.0.6.apk",
             "https://github.com/virresh/matvt/releases/download/v1.0.6/matvt-app-release-v1.0.6.apk"
@@ -114,36 +117,397 @@ public class MainActivity extends Activity {
         }
     };
 
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private TextView statusTitle;
+    private TextView statusBody;
+    private ProgressBar progressBar;
+    private Button heroButton;
+    private TextView zltStatusText;
+    private EditText zltPassInput;
+    private LinearLayout appsContainer;
+    private volatile boolean busy = false;
+    private volatile String discoveredBoxIp = "";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-        webView = new WebView(this);
-        WebSettings ws = webView.getSettings();
-        ws.setJavaScriptEnabled(true);
-        ws.setDomStorageEnabled(true);
-        ws.setAllowFileAccess(true);
-        ws.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+        ScrollView scroll = new ScrollView(this);
+        scroll.setBackgroundColor(Color.parseColor("#0D0F14"));
+        scroll.setFillViewport(true);
 
-        webView.setBackgroundColor(0xFF0D0F14);
-        webView.setWebChromeClient(new WebChromeClient());
-        webView.setWebViewClient(new WebViewClient());
-        webView.addJavascriptInterface(this, "MoBoxNative");
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        int pad = dp(24);
+        root.setPadding(pad, pad, pad, dp(40));
+        scroll.addView(root);
 
-        setContentView(webView);
-        webView.loadUrl("file:///android_asset/index.html");
+        // Header
+        TextView title = new TextView(this);
+        title.setText("MoBox");
+        title.setTextColor(Color.parseColor("#F4F1EA"));
+        title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 28);
+        title.setTypeface(Typeface.DEFAULT_BOLD);
+        root.addView(title);
+
+        TextView sub = new TextView(this);
+        String kind = isTvDevice() ? "Mi Box / Android TV" : "Android Phone / Tablet";
+        String arch = is64Bit() ? "64-bit (arm64-v8a)" : "32-bit (armeabi-v7a)";
+        sub.setText(Build.MANUFACTURER + " " + Build.MODEL + " (" + kind + ")  •  " + arch + "  •  " + getFreeStorageMb() + " MB free");
+        sub.setTextColor(Color.parseColor("#949DB0"));
+        sub.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        sub.setPadding(0, dp(4), 0, dp(18));
+        root.addView(sub);
+
+        // 1. Primary 1-Click Setup Card
+        LinearLayout heroCard = makeCard();
+        root.addView(heroCard, cardLp());
+
+        statusTitle = new TextView(this);
+        statusTitle.setText("1. Set Up Everything in One Click");
+        statusTitle.setTextColor(Color.parseColor("#F4F1EA"));
+        statusTitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
+        statusTitle.setTypeface(Typeface.DEFAULT_BOLD);
+        heroCard.addView(statusTitle);
+
+        statusBody = new TextView(this);
+        statusBody.setText("Installs any missing core apps (Hume Launcher, TV Live with 2,200+ channels, SmartTube, TV Bro, SlamVision, MATVT, Aerial Views 4K Space & Nature) and programs TV Live.");
+        statusBody.setTextColor(Color.parseColor("#A9B2C6"));
+        statusBody.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        statusBody.setPadding(0, dp(6), 0, dp(14));
+        heroCard.addView(statusBody);
+
+        heroButton = makeButton("Set Up Mi Box Now (All-in-One)", "#32B868", "#FFFFFF");
+        heroButton.setOnClickListener(v -> runOneClickSetup());
+        heroCard.addView(heroButton);
+
+        progressBar = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
+        progressBar.setMax(CORE_APPS.length + 1);
+        progressBar.setProgress(0);
+        LinearLayout.LayoutParams pbLp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, dp(10));
+        pbLp.topMargin = dp(12);
+        heroCard.addView(progressBar, pbLp);
+
+        // 2. Quick TV Settings Card
+        LinearLayout tvCard = makeCard();
+        root.addView(tvCard, cardLp());
+
+        TextView tvTitle = new TextView(this);
+        tvTitle.setText("2. Quick TV Controls & Pairing");
+        tvTitle.setTextColor(Color.parseColor("#F4F1EA"));
+        tvTitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+        tvTitle.setTypeface(Typeface.DEFAULT_BOLD);
+        tvTitle.setPadding(0, 0, 0, dp(10));
+        tvCard.addView(tvTitle);
+
+        Button btnProgramTv = makeButton("Program TV Live Channels (Worldwide + Iran)", "#1C212D", "#F4F1EA");
+        btnProgramTv.setOnClickListener(v -> programTvLiveAsync());
+        tvCard.addView(btnProgramTv, btnLp());
+
+        Button btnScreensaver = makeButton("Pick 4K Space & Nature Screensaver (Aerial Views)", "#1C212D", "#F4F1EA");
+        btnScreensaver.setOnClickListener(v -> openSystemScreen(Settings.ACTION_DREAM_SETTINGS));
+        tvCard.addView(btnScreensaver, btnLp());
+
+        Button btnHome = makeButton("Pick Home Screen (Hume Launcher)", "#1C212D", "#F4F1EA");
+        btnHome.setOnClickListener(v -> openSystemScreen(Settings.ACTION_HOME_SETTINGS));
+        tvCard.addView(btnHome, btnLp());
+
+        Button btnAccessibility = makeButton("Turn On MATVT Remote Mouse & Scroll Helper", "#1C212D", "#F4F1EA");
+        btnAccessibility.setOnClickListener(v -> openSystemScreen(Settings.ACTION_ACCESSIBILITY_SETTINGS));
+        tvCard.addView(btnAccessibility, btnLp());
+
+        Button btnBt = makeButton("Open Bluetooth Pairing (Turn Mac Bluetooth OFF First!)", "#1C212D", "#F4F1EA");
+        btnBt.setOnClickListener(v -> openSystemScreen(Settings.ACTION_BLUETOOTH_SETTINGS));
+        tvCard.addView(btnBt, btnLp());
+
+        // 3. ZLT X28 5G Router Card
+        LinearLayout zltCard = makeCard();
+        root.addView(zltCard, cardLp());
+
+        TextView zltTitle = new TextView(this);
+        zltTitle.setText("3. Fix ZLT X28 5G Router (192.168.70.1)");
+        zltTitle.setTextColor(Color.parseColor("#F4F1EA"));
+        zltTitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+        zltTitle.setTypeface(Typeface.DEFAULT_BOLD);
+        zltCard.addView(zltTitle);
+
+        TextView zltDesc = new TextView(this);
+        zltDesc.setText("While connected to the ZLT X28 Wi-Fi, tap below to fix the empty Auto-APN bug (sets MCI mcinet), enable Auto-Dial, and clear stuck band locks.");
+        zltDesc.setTextColor(Color.parseColor("#A9B2C6"));
+        zltDesc.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        zltDesc.setPadding(0, dp(4), 0, dp(8));
+        zltCard.addView(zltDesc);
+
+        zltPassInput = new EditText(this);
+        zltPassInput.setText("admin");
+        zltPassInput.setHint("Router admin password");
+        zltPassInput.setTextColor(Color.parseColor("#F4F1EA"));
+        zltPassInput.setHintTextColor(Color.parseColor("#5E677A"));
+        zltPassInput.setBackgroundColor(Color.parseColor("#0D0F14"));
+        zltPassInput.setPadding(dp(12), dp(10), dp(12), dp(10));
+        zltPassInput.setSingleLine(true);
+        zltCard.addView(zltPassInput, btnLp());
+
+        Button btnZlt = makeButton("Fix My ZLT X28 Router Now", "#E84A27", "#FFFFFF");
+        btnZlt.setOnClickListener(v -> runZltFixAsync());
+        zltCard.addView(btnZlt, btnLp());
+
+        zltStatusText = new TextView(this);
+        zltStatusText.setText("");
+        zltStatusText.setTextColor(Color.parseColor("#E5A913"));
+        zltStatusText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        zltStatusText.setPadding(0, dp(8), 0, 0);
+        zltCard.addView(zltStatusText);
+
+        // 4. Individual Apps Card
+        LinearLayout appsCard = makeCard();
+        root.addView(appsCard, cardLp());
+
+        TextView appsTitle = new TextView(this);
+        appsTitle.setText("4. Individual Apps (" + arch + ")");
+        appsTitle.setTextColor(Color.parseColor("#F4F1EA"));
+        appsTitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+        appsTitle.setTypeface(Typeface.DEFAULT_BOLD);
+        appsTitle.setPadding(0, 0, 0, dp(8));
+        appsCard.addView(appsTitle);
+
+        appsContainer = new LinearLayout(this);
+        appsContainer.setOrientation(LinearLayout.VERTICAL);
+        appsCard.addView(appsContainer);
+        rebuildAppButtons();
+
+        // Footer
+        TextView footer = new TextView(this);
+        footer.setText("Made by Morad  •  MoBox v2.1.1 (Native Android TV + Phone)");
+        footer.setTextColor(Color.parseColor("#5E677A"));
+        footer.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        footer.setGravity(Gravity.CENTER_HORIZONTAL);
+        footer.setPadding(0, dp(14), 0, 0);
+        root.addView(footer);
+
+        setContentView(scroll);
+        heroButton.requestFocus();
     }
 
     @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
-        if (keyCode == KeyEvent.KEYCODE_BACK && webView != null && webView.canGoBack()) {
-            webView.goBack();
-            return true;
-        }
-        return super.onKeyDown(keyCode, event);
+    protected void onResume() {
+        super.onResume();
+        rebuildAppButtons();
     }
+
+    private void rebuildAppButtons() {
+        if (appsContainer == null) return;
+        appsContainer.removeAllViews();
+        boolean arm64 = is64Bit();
+        for (final String[] row : CORE_APPS) {
+            final String key = row[0];
+            final String title = row[1];
+            final String pkg = row[2];
+            final String url = arm64 ? row[4] : row[3];
+            boolean installed = isPackageInstalled(pkg);
+            String label = (installed ? "[Installed]  " : "[Install]  ") + title;
+            Button b = makeButton(label, installed ? "#151922" : "#1C212D", installed ? "#5CE092" : "#F4F1EA");
+            b.setOnClickListener(v -> installSingleAsync(title, key, url));
+            appsContainer.addView(b, btnLp());
+        }
+    }
+
+    // ------------------------------------------------------------------ UI Helpers
+
+    private int dp(int v) {
+        return Math.round(v * getResources().getDisplayMetrics().density);
+    }
+
+    private LinearLayout.LayoutParams cardLp() {
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        lp.bottomMargin = dp(14);
+        return lp;
+    }
+
+    private LinearLayout.LayoutParams btnLp() {
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        lp.topMargin = dp(8);
+        return lp;
+    }
+
+    private LinearLayout makeCard() {
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setPadding(dp(18), dp(18), dp(18), dp(18));
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(Color.parseColor("#151922"));
+        bg.setCornerRadius(dp(14));
+        bg.setStroke(dp(1), Color.parseColor("#2A3142"));
+        card.setBackground(bg);
+        return card;
+    }
+
+    private Button makeButton(String text, String fillHex, String textHex) {
+        Button btn = new Button(this);
+        btn.setText(text);
+        btn.setAllCaps(false);
+        btn.setTextColor(Color.parseColor(textHex));
+        btn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        btn.setTypeface(Typeface.DEFAULT_BOLD);
+        btn.setPadding(dp(16), dp(12), dp(16), dp(12));
+        btn.setMinimumHeight(dp(50));
+        btn.setFocusable(true);
+        btn.setFocusableInTouchMode(false);
+
+        GradientDrawable normal = new GradientDrawable();
+        normal.setColor(Color.parseColor(fillHex));
+        normal.setCornerRadius(dp(10));
+        normal.setStroke(dp(1), Color.parseColor("#353D52"));
+
+        GradientDrawable focused = new GradientDrawable();
+        focused.setColor(Color.parseColor(fillHex));
+        focused.setCornerRadius(dp(10));
+        focused.setStroke(dp(3), Color.parseColor("#E5A913")); // Bold Paul Rand gold focus ring for TV remote!
+
+        GradientDrawable pressed = new GradientDrawable();
+        pressed.setColor(Color.parseColor("#E84A27"));
+        pressed.setCornerRadius(dp(10));
+        pressed.setStroke(dp(3), Color.WHITE);
+
+        StateListDrawable states = new StateListDrawable();
+        states.addState(new int[] { android.R.attr.state_pressed }, pressed);
+        states.addState(new int[] { android.R.attr.state_focused }, focused);
+        states.addState(new int[] { android.R.attr.state_selected }, focused);
+        states.addState(new int[] {}, normal);
+        btn.setBackground(states);
+        return btn;
+    }
+
+    private void setStatus(final String title, final String body, final int step) {
+        mainHandler.post(() -> {
+            if (title != null) statusTitle.setText(title);
+            if (body != null) statusBody.setText(body);
+            if (step >= 0) progressBar.setProgress(step);
+        });
+    }
+
+    // ------------------------------------------------------------------ Actions
+
+    private void runOneClickSetup() {
+        if (busy) return;
+        busy = true;
+        heroButton.setEnabled(false);
+        new Thread(() -> {
+            try {
+                boolean arm64 = is64Bit();
+                int step = 0;
+                for (String[] row : CORE_APPS) {
+                    step++;
+                    String key = row[0];
+                    String title = row[1];
+                    String pkg = row[2];
+                    String url = arm64 ? row[4] : row[3];
+                    if (isPackageInstalled(pkg)) {
+                        setStatus("Checking apps (" + step + "/" + CORE_APPS.length + ")", "Keeping existing " + title, step);
+                        Thread.sleep(200);
+                        continue;
+                    }
+                    setStatus("Downloading (" + step + "/" + CORE_APPS.length + ")", "Downloading " + title + "…", step);
+                    File apk = downloadToCache(url, key + ".apk");
+                    setStatus("Installing (" + step + "/" + CORE_APPS.length + ")", "Tap Install on the screen for " + title, step);
+                    installApkSession(apk);
+                    Thread.sleep(1600);
+                }
+                setStatus("Programming TV Live…", "Setting Worldwide + Top Picks + Iran channels…", CORE_APPS.length + 1);
+                boolean tvOk = configureTvLiveAtHost("127.0.0.1");
+                if (!tvOk && !discoveredBoxIp.isEmpty()) {
+                    tvOk = configureTvLiveAtHost(discoveredBoxIp);
+                }
+                setStatus(
+                    "Setup Complete",
+                    tvOk
+                        ? "Apps queued and TV Live channels programmed! Use Section 2 below to set Hume Home & Aerial Views Screensaver."
+                        : "Apps queued! Open TV Live once, then tap 'Program TV Live Channels' below.",
+                    CORE_APPS.length + 1
+                );
+            } catch (Exception e) {
+                setStatus("Setup Note", "Stopped: " + e.getMessage(), -1);
+            } finally {
+                busy = false;
+                mainHandler.post(() -> {
+                    heroButton.setEnabled(true);
+                    rebuildAppButtons();
+                });
+            }
+        }).start();
+    }
+
+    private void installSingleAsync(final String title, final String key, final String url) {
+        if (busy) {
+            setStatus(null, "Please wait for the current install to finish…", -1);
+            return;
+        }
+        busy = true;
+        new Thread(() -> {
+            try {
+                setStatus("Downloading " + title, "Fetching APK from GitHub…", 1);
+                File apk = downloadToCache(url, key + ".apk");
+                setStatus("Installing " + title, "Approve the install prompt on screen.", 2);
+                installApkSession(apk);
+            } catch (Exception e) {
+                setStatus("Install Note", "Could not download " + title + ": " + e.getMessage(), -1);
+            } finally {
+                busy = false;
+                mainHandler.post(this::rebuildAppButtons);
+            }
+        }).start();
+    }
+
+    private void programTvLiveAsync() {
+        setStatus("Programming TV Live…", "Looking for TV Live on this box or Wi-Fi…", -1);
+        new Thread(() -> {
+            boolean ok = configureTvLiveAtHost("127.0.0.1");
+            if (!ok) {
+                String found = scanWifiForMiBox();
+                if (!found.isEmpty()) {
+                    ok = configureTvLiveAtHost(found);
+                }
+            }
+            final boolean finalOk = ok;
+            setStatus(
+                finalOk ? "TV Live Ready" : "Open TV Live Once",
+                finalOk
+                    ? "TV Live now has all 2,200+ Worldwide & Iran channels (Top Picks + Worldwide)!"
+                    : "Could not reach TV Live (port 10591). Open TV Live on the TV once, then tap this button again.",
+                -1
+            );
+        }).start();
+    }
+
+    private void openSystemScreen(String action) {
+        try {
+            Intent intent = new Intent(action);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+        } catch (Exception e) {
+            try {
+                Intent fallback = new Intent(Settings.ACTION_SETTINGS);
+                fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(fallback);
+            } catch (Exception ignored) {}
+        }
+    }
+
+    private void runZltFixAsync() {
+        final String pw = zltPassInput.getText().toString().trim();
+        mainHandler.post(() -> zltStatusText.setText("Connecting to ZLT X28 at 192.168.70.1…"));
+        new Thread(() -> {
+            final String msg = fixZltRouter(pw.isEmpty() ? "admin" : pw);
+            mainHandler.post(() -> zltStatusText.setText(msg));
+        }).start();
+    }
+
+    // ------------------------------------------------------------------ Device & Network Logic
 
     private boolean isTvDevice() {
         UiModeManager um = (UiModeManager) getSystemService(Context.UI_MODE_SERVICE);
@@ -230,7 +594,7 @@ public class MainActivity extends Activity {
         conn.setInstanceFollowRedirects(true);
         conn.setConnectTimeout(15000);
         conn.setReadTimeout(60000);
-        conn.setRequestProperty("User-Agent", "MoBox-Android/2.1.0");
+        conn.setRequestProperty("User-Agent", "MoBox-Android/2.1.1");
         try (InputStream in = conn.getInputStream();
              FileOutputStream out = new FileOutputStream(dest)) {
             byte[] buf = new byte[65536];
@@ -240,6 +604,38 @@ public class MainActivity extends Activity {
             }
         }
         return dest;
+    }
+
+    private String scanWifiForMiBox() {
+        String myIp = getWifiIp();
+        if (myIp.isEmpty() || !myIp.contains(".")) return "";
+        final String prefix = myIp.substring(0, myIp.lastIndexOf('.') + 1);
+        ExecutorService pool = Executors.newFixedThreadPool(32);
+        List<Future<String>> futures = new ArrayList<>();
+        for (int i = 2; i < 254; i++) {
+            final String candidate = prefix + i;
+            if (candidate.equals(myIp)) continue;
+            futures.add(pool.submit((Callable<String>) () -> {
+                for (int port : new int[] {10591, 5555, 6466}) {
+                    try (Socket s = new Socket()) {
+                        s.connect(new InetSocketAddress(candidate, port), 260);
+                        return candidate;
+                    } catch (Exception ignored) {}
+                }
+                return "";
+            }));
+        }
+        pool.shutdown();
+        for (Future<String> f : futures) {
+            try {
+                String res = f.get();
+                if (res != null && !res.isEmpty()) {
+                    discoveredBoxIp = res;
+                    return res;
+                }
+            } catch (Exception ignored) {}
+        }
+        return "";
     }
 
     private boolean configureTvLiveAtHost(String host) {
@@ -296,6 +692,95 @@ public class MainActivity extends Activity {
         }
     }
 
+    private String fixZltRouter(String pw) {
+        try {
+            URL cgi = new URL("http://192.168.70.1/cgi-bin/http.cgi");
+            JSONObject cReq = new JSONObject();
+            cReq.put("cmd", 232);
+            cReq.put("method", "GET");
+            cReq.put("sessionId", "");
+            JSONObject cRes = postZlt(cgi, cReq);
+            String token = cRes.optString("token", "");
+            if (token.isEmpty()) {
+                return "Could not reach ZLT X28 at 192.168.70.1. Join the ZLT Wi-Fi first.";
+            }
+            String hash = sha256Hex(token + pw);
+            JSONObject lReq = new JSONObject();
+            lReq.put("cmd", 100);
+            lReq.put("method", "POST");
+            lReq.put("sessionId", "mobox" + System.currentTimeMillis());
+            lReq.put("username", "admin");
+            lReq.put("passwd", hash);
+            lReq.put("isAutoUpgrade", "0");
+            lReq.put("subcmd", 0);
+            JSONObject lRes = postZlt(cgi, lReq);
+            String sid = lRes.optString("sessionId", "");
+            if (sid.isEmpty()) {
+                return "ZLT X28 rejected the admin password.";
+            }
+            JSONObject dialReq = new JSONObject();
+            dialReq.put("cmd", 222);
+            dialReq.put("method", "POST");
+            dialReq.put("sessionId", sid);
+            dialReq.put("dialMode", "1");
+            postZlt(cgi, dialReq);
+
+            JSONObject bandReq = new JSONObject();
+            bandReq.put("cmd", 161);
+            bandReq.put("method", "POST");
+            bandReq.put("sessionId", sid);
+            bandReq.put("band4gRadio", "0");
+            bandReq.put("band5gRadio", "0");
+            postZlt(cgi, bandReq);
+
+            JSONObject apnGet = new JSONObject();
+            apnGet.put("cmd", 248);
+            apnGet.put("method", "GET");
+            apnGet.put("sessionId", sid);
+            JSONObject apnRes = postZlt(cgi, apnGet);
+            JSONArray apnList = apnRes.optJSONArray("apn_list");
+            if (apnList != null && apnList.length() > 0) {
+                int mciIdx = -1;
+                for (int i = 0; i < apnList.length(); i++) {
+                    JSONObject a = apnList.optJSONObject(i);
+                    if (a != null && "mcinet".equalsIgnoreCase(a.optString("apnName"))) {
+                        mciIdx = i;
+                        break;
+                    }
+                }
+                if (mciIdx >= 0) {
+                    for (int i = 0; i < apnList.length(); i++) {
+                        JSONObject a = apnList.optJSONObject(i);
+                        if (a != null) a.put("default_flag", i == mciIdx ? "1" : "0");
+                    }
+                    JSONObject apnPost = new JSONObject();
+                    apnPost.put("cmd", 248);
+                    apnPost.put("method", "POST");
+                    apnPost.put("sessionId", sid);
+                    apnPost.put("apn_list", apnList);
+                    postZlt(cgi, apnPost);
+                }
+            }
+            return "ZLT X28 fixed! Auto-Dial is ON, band locks cleared, and MCI (mcinet) APN set as default.";
+        } catch (Exception e) {
+            return "Cannot reach ZLT X28 at 192.168.70.1 (" + e.getMessage() + ").";
+        }
+    }
+
+    private JSONObject postZlt(URL cgi, JSONObject body) throws Exception {
+        HttpURLConnection conn = (HttpURLConnection) cgi.openConnection();
+        conn.setRequestMethod("POST");
+        conn.setDoOutput(true);
+        conn.setConnectTimeout(4500);
+        conn.setReadTimeout(6000);
+        conn.setRequestProperty("Content-Type", "application/json");
+        byte[] raw = body.toString().getBytes(StandardCharsets.UTF_8);
+        try (OutputStream os = conn.getOutputStream()) {
+            os.write(raw);
+        }
+        return new JSONObject(readStream(conn.getInputStream()));
+    }
+
     private static String readStream(InputStream in) throws Exception {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         byte[] buf = new byte[16384];
@@ -311,279 +796,4 @@ public class MainActivity extends Activity {
         for (byte b : digest) sb.append(String.format("%02x", b));
         return sb.toString();
     }
-
-        @JavascriptInterface
-        public String getStatusJson() {
-            try {
-                JSONObject root = new JSONObject();
-                boolean isTv = isTvDevice();
-                boolean arm64 = is64Bit();
-                root.put("version", "2.1.0");
-                root.put("is_tv", isTv);
-                root.put("model", Build.MODEL);
-                root.put("manufacturer", Build.MANUFACTURER);
-                root.put("android_release", Build.VERSION.RELEASE);
-                root.put("sdk", Build.VERSION.SDK_INT);
-                root.put("build_id", Build.DISPLAY);
-                root.put("arch_label", arm64 ? "64-bit (arm64-v8a)" : "32-bit (armeabi-v7a)");
-                root.put("free_storage_mb", getFreeStorageMb());
-                root.put("wifi_ip", getWifiIp());
-                root.put("discovered_box_ip", discoveredBoxIp);
-                root.put("busy", busy);
-                root.put("step", progressStep);
-                root.put("total", progressTotal);
-                root.put("label", progressLabel);
-
-                JSONArray apps = new JSONArray();
-                for (String[] row : CORE_APPS) {
-                    JSONObject a = new JSONObject();
-                    a.put("key", row[0]);
-                    a.put("title", row[1]);
-                    a.put("package", row[2]);
-                    a.put("url", arm64 ? row[4] : row[3]);
-                    a.put("installed", isPackageInstalled(row[2]));
-                    apps.put(a);
-                }
-                root.put("apps", apps);
-                return root.toString();
-            } catch (Exception e) {
-                return "{}";
-            }
-        }
-
-        @JavascriptInterface
-        public void runOneClickSetup() {
-            if (busy) return;
-            busy = true;
-            progressStep = 0;
-            progressTotal = CORE_APPS.length + 1;
-            progressLabel = "Checking your device processor and installed apps…";
-
-            new Thread(() -> {
-                try {
-                    boolean arm64 = is64Bit();
-                    int idx = 0;
-                    for (String[] row : CORE_APPS) {
-                        idx++;
-                        progressStep = idx;
-                        String title = row[1];
-                        String pkg = row[2];
-                        String url = arm64 ? row[4] : row[3];
-                        if (isPackageInstalled(pkg)) {
-                            progressLabel = "Keeping existing " + title;
-                            Thread.sleep(250);
-                            continue;
-                        }
-                        progressLabel = "Downloading " + title + "…";
-                        File apk = downloadToCache(url, row[0] + ".apk");
-                        progressLabel = "Prompting install for " + title + "…";
-                        installApkSession(apk);
-                        Thread.sleep(1500);
-                    }
-                    progressStep = progressTotal;
-                    progressLabel = "Programming TV Live Worldwide + Iran channels…";
-                    boolean tvOk = configureTvLiveAtHost("127.0.0.1");
-                    if (!tvOk && !discoveredBoxIp.isEmpty()) {
-                        tvOk = configureTvLiveAtHost(discoveredBoxIp);
-                    }
-                    progressLabel = tvOk
-                        ? "All done! Apps queued and TV Live channels programmed."
-                        : "Apps ready! Open TV Live once, then tap 'Program TV Live Channels'.";
-                } catch (Exception e) {
-                    progressLabel = "Setup note: " + e.getMessage();
-                } finally {
-                    busy = false;
-                }
-            }).start();
-        }
-
-        @JavascriptInterface
-        public void installSingleApp(final String key) {
-            if (busy) return;
-            new Thread(() -> {
-                busy = true;
-                try {
-                    boolean arm64 = is64Bit();
-                    for (String[] row : CORE_APPS) {
-                        if (row[0].equals(key)) {
-                            progressLabel = "Downloading " + row[1] + "…";
-                            File apk = downloadToCache(arm64 ? row[4] : row[3], key + ".apk");
-                            progressLabel = "Opening installer for " + row[1] + "…";
-                            installApkSession(apk);
-                            break;
-                        }
-                    }
-                } catch (Exception e) {
-                    progressLabel = "Install failed: " + e.getMessage();
-                } finally {
-                    busy = false;
-                }
-            }).start();
-        }
-
-        @JavascriptInterface
-        public String scanWifiForMiBox() {
-            String myIp = getWifiIp();
-            if (myIp.isEmpty() || !myIp.contains(".")) return "";
-            final String prefix = myIp.substring(0, myIp.lastIndexOf('.') + 1);
-            ExecutorService pool = Executors.newFixedThreadPool(32);
-            List<Future<String>> futures = new ArrayList<>();
-            for (int i = 2; i < 254; i++) {
-                final String candidate = prefix + i;
-                if (candidate.equals(myIp)) continue;
-                futures.add(pool.submit((Callable<String>) () -> {
-                    for (int port : new int[] {10591, 5555, 6466}) {
-                        try (Socket s = new Socket()) {
-                            s.connect(new InetSocketAddress(candidate, port), 260);
-                            return candidate;
-                        } catch (Exception ignored) {}
-                    }
-                    return "";
-                }));
-            }
-            pool.shutdown();
-            for (Future<String> f : futures) {
-                try {
-                    String res = f.get();
-                    if (res != null && !res.isEmpty()) {
-                        discoveredBoxIp = res;
-                        return res;
-                    }
-                } catch (Exception ignored) {}
-            }
-            return "";
-        }
-
-        @JavascriptInterface
-        public String programTvLiveOnWifi(String host) {
-            String target = (host == null || host.trim().isEmpty())
-                ? (discoveredBoxIp.isEmpty() ? "127.0.0.1" : discoveredBoxIp)
-                : host.trim();
-            boolean ok = configureTvLiveAtHost(target);
-            return ok
-                ? "TV Live at " + target + " programmed with Top Picks + Worldwide!"
-                : "Could not reach TV Live at " + target + ":10591. Make sure TV Live is open on the TV.";
-        }
-
-        @JavascriptInterface
-        public void openSystemScreen(String which) {
-            try {
-                Intent intent;
-                switch (which) {
-                    case "screensaver":
-                        intent = new Intent(Settings.ACTION_DREAM_SETTINGS);
-                        break;
-                    case "accessibility":
-                        intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
-                        break;
-                    case "home":
-                        intent = new Intent(Settings.ACTION_HOME_SETTINGS);
-                        break;
-                    case "bluetooth":
-                        intent = new Intent(Settings.ACTION_BLUETOOTH_SETTINGS);
-                        break;
-                    default:
-                        intent = new Intent(Settings.ACTION_SETTINGS);
-                        break;
-                }
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                startActivity(intent);
-            } catch (Exception ignored) {}
-        }
-
-        @JavascriptInterface
-        public String fixZltRouter(String adminPassword) {
-            String pw = (adminPassword == null || adminPassword.isEmpty()) ? "admin" : adminPassword;
-            try {
-                URL cgi = new URL("http://192.168.70.1/cgi-bin/http.cgi");
-                // 1. Challenge token (cmd 232)
-                JSONObject cReq = new JSONObject();
-                cReq.put("cmd", 232);
-                cReq.put("method", "GET");
-                cReq.put("sessionId", "");
-                JSONObject cRes = postZlt(cgi, cReq);
-                String token = cRes.optString("token", "");
-                if (token.isEmpty()) {
-                    return "Could not get login token from 192.168.70.1. Join the ZLT X28 Wi-Fi first.";
-                }
-                // 2. Login (cmd 100)
-                String hash = sha256Hex(token + pw);
-                JSONObject lReq = new JSONObject();
-                lReq.put("cmd", 100);
-                lReq.put("method", "POST");
-                lReq.put("sessionId", "mobox" + System.currentTimeMillis());
-                lReq.put("username", "admin");
-                lReq.put("passwd", hash);
-                lReq.put("isAutoUpgrade", "0");
-                lReq.put("subcmd", 0);
-                JSONObject lRes = postZlt(cgi, lReq);
-                String sid = lRes.optString("sessionId", "");
-                if (sid.isEmpty()) {
-                    return "ZLT X28 rejected the admin password.";
-                }
-                // 3. Enable Auto-Dial (cmd 222)
-                JSONObject dialReq = new JSONObject();
-                dialReq.put("cmd", 222);
-                dialReq.put("method", "POST");
-                dialReq.put("sessionId", sid);
-                dialReq.put("dialMode", "1");
-                postZlt(cgi, dialReq);
-
-                // 4. Clear stuck band lock (cmd 161)
-                JSONObject bandReq = new JSONObject();
-                bandReq.put("cmd", 161);
-                bandReq.put("method", "POST");
-                bandReq.put("sessionId", sid);
-                bandReq.put("band4gRadio", "0");
-                bandReq.put("band5gRadio", "0");
-                postZlt(cgi, bandReq);
-
-                // 5. Fix broken empty Auto APN -> set default_flag onto MCI mcinet if present (cmd 248)
-                JSONObject apnGet = new JSONObject();
-                apnGet.put("cmd", 248);
-                apnGet.put("method", "GET");
-                apnGet.put("sessionId", sid);
-                JSONObject apnRes = postZlt(cgi, apnGet);
-                JSONArray apnList = apnRes.optJSONArray("apn_list");
-                if (apnList != null && apnList.length() > 0) {
-                    int mciIdx = -1;
-                    for (int i = 0; i < apnList.length(); i++) {
-                        JSONObject a = apnList.optJSONObject(i);
-                        if (a != null && "mcinet".equalsIgnoreCase(a.optString("apnName"))) {
-                            mciIdx = i;
-                            break;
-                        }
-                    }
-                    if (mciIdx >= 0) {
-                        for (int i = 0; i < apnList.length(); i++) {
-                            JSONObject a = apnList.optJSONObject(i);
-                            if (a != null) a.put("default_flag", i == mciIdx ? "1" : "0");
-                        }
-                        JSONObject apnPost = new JSONObject();
-                        apnPost.put("cmd", 248);
-                        apnPost.put("method", "POST");
-                        apnPost.put("sessionId", sid);
-                        apnPost.put("apn_list", apnList);
-                        postZlt(cgi, apnPost);
-                    }
-                }
-                return "ZLT X28 fixed: Auto-Dial enabled, stuck band locks cleared, and MCI APN verified.";
-            } catch (Exception e) {
-                return "Cannot reach ZLT X28 at 192.168.70.1 (" + e.getMessage() + "). Connect to the ZLT Wi-Fi first.";
-            }
-        }
-
-        private JSONObject postZlt(URL cgi, JSONObject body) throws Exception {
-            HttpURLConnection conn = (HttpURLConnection) cgi.openConnection();
-            conn.setRequestMethod("POST");
-            conn.setDoOutput(true);
-            conn.setConnectTimeout(4500);
-            conn.setReadTimeout(6000);
-            conn.setRequestProperty("Content-Type", "application/json");
-            byte[] raw = body.toString().getBytes(StandardCharsets.UTF_8);
-            try (OutputStream os = conn.getOutputStream()) {
-                os.write(raw);
-            }
-            return new JSONObject(readStream(conn.getInputStream()));
-        }
 }
