@@ -43,7 +43,7 @@ def build_parser() -> argparse.ArgumentParser:
     g2.add_argument("--no-stay-awake", action="store_true", help="Do NOT set stay-awake.")
     g2.add_argument("--no-clear-recommendations", action="store_true",
                     help="Do NOT clear the recommendation cache.")
-    g2.add_argument("--no-home", action="store_true", help="Do NOT set Beam as the home screen.")
+    g2.add_argument("--no-home", action="store_true", help="Do NOT set Hume as the home screen.")
     g2.add_argument("--wallpaper", metavar="FILE", help="Push an image and use it as wallpaper.")
     g2.add_argument("--iptv", metavar="URL", help="Push an M3U playlist to /sdcard/Download.")
     g2.add_argument("--cache", metavar="DIR", help="Where to keep downloaded APKs.")
@@ -158,7 +158,7 @@ def main(argv=None) -> int:
           f"\n  install {len(plan.apps)} app(s)"
           f"\n  animations={'off' if plan.tune_animations else 'skip'}"
           f"  awake={'on' if plan.stay_awake else 'skip'}"
-          f"  home={'beam' if plan.set_home else 'skip'}")
+          f"  home={'hume' if plan.set_home else 'skip'}")
 
     if args.dry_run:
         for p in plan.packages:

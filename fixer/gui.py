@@ -422,7 +422,7 @@ class MoBoxApp(ttk.Frame):
         ttk.Combobox(
             home_row,
             textvariable=self.var_home_choice,
-            values=["hume", "beam", "flauncher", "ltvlauncher"],
+            values=["hume", "flauncher", "ltvlauncher"],
             state="readonly",
             width=16,
         ).pack(side="left", padx=8)

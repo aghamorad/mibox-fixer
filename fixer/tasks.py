@@ -135,17 +135,19 @@ class Fixer:
 
         if plan.stay_awake:
             has_aerial = self.adb.is_installed("com.neilturner.aerialviews")
-            # Keep stay_on_while_plugged_in=7 (mStayOn=true) ALWAYS on Android 9 Mi Box 4;
-            # setting it to 0 lets PowerManager drop into deep sleep when the TV turns off.
+            # Keep sleep_timeout=-1 and HDMI-CEC auto-off disabled; when Aerial Views is
+            # present let the 5-minute screen_off_timeout trigger the 4K DreamService screensaver
+            # while MoBox's KeepAwakeService holds PARTIAL_WAKE_LOCK so the box never enters
+            # Amlogic deep-sleep coma.
             awake_settings = [
-                ("global", "stay_on_while_plugged_in", 7),
+                ("global", "stay_on_while_plugged_in", 0 if has_aerial else 7),
                 ("global", "hdmi_control_enabled", 1),
                 ("global", "hdmi_control_one_touch_play_enabled", 1),
                 ("global", "hdmi_control_auto_device_off_enabled", 0),
                 ("global", "hdmi_control_auto_wakeup_enabled", 1),
                 ("secure", "sleep_timeout", -1),
-                ("secure", "screensaver_enabled", 0),
-                ("system", "screen_off_timeout", 2147483647),
+                ("secure", "screensaver_enabled", 1 if has_aerial else 0),
+                ("system", "screen_off_timeout", 300000 if has_aerial else 2147483647),
             ]
             all_ok = True
             for ns, key, val in awake_settings:
@@ -154,6 +156,9 @@ class Fixer:
                 results.append(Result(ok, f"{ns}/{key} = {val}"))
             if has_aerial:
                 self.adb.enable_aerial_views_screensaver()
+            if self.adb.is_installed("com.morad.mobox"):
+                self.adb.shell_ok("dumpsys deviceidle whitelist +com.morad.mobox")
+                self.adb.shell_ok("am start-foreground-service -n com.morad.mobox/.KeepAwakeService")
             self.report(
                 "ok     stay awake & HDMI-CEC TV-remote wake protection applied"
                 if all_ok
@@ -169,7 +174,7 @@ class Fixer:
 
     # ------------------------------------------------------------------ launcher
 
-    def do_set_home(self, app_key: str = "beam") -> Result:
+    def do_set_home(self, app_key: str = "hume") -> Result:
         app = catalog.APPS_BY_KEY.get(app_key)
         if not app or not app.component:
             return Result(False, "unknown launcher")
@@ -242,6 +247,7 @@ class Fixer:
 
     MOBOX_SIMPLE_APPS = (
         "hume",
+        "mobox",
         "tvbro",
         "mytv",
         "slamvision",
@@ -309,8 +315,9 @@ class Fixer:
             Plan(tune_animations=True, stay_awake=True, clear_recommendations=False, set_home=False)
         )
 
-        # 4. Set Hume Apple TV-style home screen (preserving Beam/stock as backup)
-        step(4, "Setting your clean Apple TV-style home screen (Hume)")
+        # 4. Set Hume Apple TV-style home screen + grant wallpaper storage permission
+        step(4, "Setting your clean Apple TV-style home screen (Hume + 4K Wallpapers)")
+        self.adb.shell_ok("pm grant com.petrobot.hume android.permission.READ_EXTERNAL_STORAGE")
         results.append(self.do_set_home("hume"))
 
         # 5. Refresh Live TV playlist if TV Live's local panel is reachable

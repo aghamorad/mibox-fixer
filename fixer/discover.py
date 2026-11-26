@@ -134,6 +134,22 @@ def _probe_port(ip: str, port: int, timeout: float = 0.35) -> bool:
         sock.close()
 
 
+def _local_subnet_candidates() -> list[str]:
+    """Build the local /24 IPv4 range when ARP cache has not seen the Mi Box yet."""
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.connect(("8.8.8.8", 80))
+        local_ip = sock.getsockname()[0]
+        sock.close()
+        parts = local_ip.split(".")
+        if len(parts) == 4 and local_ip.startswith(("192.168.", "10.", "172.")):
+            prefix = ".".join(parts[:3])
+            return [f"{prefix}.{i}" for i in range(2, 255) if f"{prefix}.{i}" != local_ip]
+    except OSError:
+        pass
+    return []
+
+
 def discover_miboxes(extra_ips: Optional[list[str]] = None) -> list[DiscoveredBox]:
     """Fast parallel LAN probe for Android TV / Mi Box devices (ADB 5555 / Remote 6466)."""
     candidates = _arp_candidates()
@@ -155,13 +171,22 @@ def discover_miboxes(extra_ips: Optional[list[str]] = None) -> list[DiscoveredBo
             )
         return None
 
-    if not candidates:
-        return []
+    def scan(ips: list[str]) -> list[DiscoveredBox]:
+        if not ips:
+            return []
+        hits: list[DiscoveredBox] = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=min(80, len(ips))) as pool:
+            for res in pool.map(check, ips):
+                if res is not None:
+                    hits.append(res)
+        return hits
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=min(32, len(candidates))) as pool:
-        for res in pool.map(check, candidates):
-            if res is not None:
-                found.append(res)
+    found = scan(candidates)
+    if not found:
+        # Fallback: sweep the active /24 subnet in case the box wasn't in the ARP cache yet
+        seen = set(candidates)
+        rest = [ip for ip in _local_subnet_candidates() if ip not in seen]
+        found = scan(rest)
 
     # Prefer devices that expose both ADB and Android TV Remote v2
     found.sort(key=lambda b: (not (b.has_adb and b.has_remote_v2), not b.has_adb, b.ip))

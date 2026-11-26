@@ -76,10 +76,10 @@ public class MainActivity extends Activity implements SensorEventListener {
     private static final String[][] CORE_APPS = new String[][] {
         {
             "hume",
-            "Hume Launcher (Apple TV-style Home)",
+            "Hume Launcher (Apple TV-style Home + 4K Wallpapers)",
             "com.petrobot.hume",
-            "https://github.com/petrobot-admin/hume-launcher/releases/download/v7.8/HumeLauncher-7.8.apk",
-            "https://github.com/petrobot-admin/hume-launcher/releases/download/v7.8/HumeLauncher-7.8.apk"
+            "https://raw.githubusercontent.com/aghamorad/mibox-fixer/main/docs/downloads/HumeLauncher-MoBox.apk",
+            "https://raw.githubusercontent.com/aghamorad/mibox-fixer/main/docs/downloads/HumeLauncher-MoBox.apk"
         },
         {
             "mytv",
@@ -159,6 +159,7 @@ public class MainActivity extends Activity implements SensorEventListener {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        KeepAwakeService.ensureStarted(this);
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 

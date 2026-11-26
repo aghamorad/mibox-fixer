@@ -56,6 +56,12 @@ with open("res/drawable/tv_banner.png", "wb") as f:
     --java "$BUILD/gen" \
     "$BUILD/res.zip"
 
+# Prefer JDK 17 when installed so d8 8.2.2 never hits JDK 25+ NestHost issues
+if [ -d "/Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home" ]; then
+    export JAVA_HOME="/Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home"
+    export PATH="$JAVA_HOME/bin:$PATH"
+fi
+
 # 3. Compile Java sources (Java 11 bytecode for d8 desugaring to min-api 24)
 javac --release 11 \
     -cp "$ANDROID_JAR" \
@@ -63,6 +69,8 @@ javac --release 11 \
     "$HERE/src/com/morad/mobox/MainActivity.java" \
     "$HERE/src/com/morad/mobox/PointerService.java" \
     "$HERE/src/com/morad/mobox/CursorView.java" \
+    "$HERE/src/com/morad/mobox/KeepAwakeService.java" \
+    "$HERE/src/com/morad/mobox/BootReceiver.java" \
     "$BUILD/gen/com/morad/mobox/R.java"
 
 # 4. Package classes.jar and convert to classes.dex with d8

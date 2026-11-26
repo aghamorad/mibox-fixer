@@ -67,9 +67,12 @@ class AssetSelection(unittest.TestCase):
         self.assertIn("arm64", pick_asset(app, ["arm64-v8a", "armeabi-v7a"]))
 
     def test_single_asset_apps_always_resolve(self):
-        for key in ("beam", "airplay", "fossify", "materialfiles"):
+        for key in ("airplay", "fossify", "materialfiles"):
             app = catalog.APPS_BY_KEY[key]
             self.assertIsNotNone(pick_asset(app, ["armeabi-v7a"]))
+
+    def test_beam_is_permanently_removed(self):
+        self.assertNotIn("beam", catalog.APPS_BY_KEY)
 
     def test_lantern_armv7_is_not_the_arm64_build(self):
         app = catalog.APPS_BY_KEY["lantern"]
@@ -90,7 +93,7 @@ class AssetSelection(unittest.TestCase):
         self.assertIn(app.version.lstrip("v"), pick_asset(app, ["armeabi-v7a"]))
 
     def test_url_uses_the_release_tag(self):
-        app = catalog.APPS_BY_KEY["beam"]
+        app = catalog.APPS_BY_KEY["airplay"]
         url, name = resolve_url(app, ["armeabi-v7a"])
         self.assertIn(app.version, url)
         self.assertTrue(url.startswith("https://github.com/"))

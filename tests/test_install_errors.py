@@ -63,7 +63,7 @@ class InstallFailureMessages(unittest.TestCase):
 class SelfUpdatingApps(unittest.TestCase):
     def test_only_apps_that_ship_an_updater_are_flagged(self):
         flagged = {a.key for a in catalog.APPS if a.self_updates}
-        self.assertEqual(flagged, {"beam"})
+        self.assertEqual(flagged, set())
 
     def test_flagged_apps_have_a_package_to_grant(self):
         for app in catalog.APPS:
