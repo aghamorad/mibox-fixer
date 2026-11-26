@@ -369,6 +369,18 @@ class Fixer:
                     )
                     with urlopen(req, timeout=6) as resp:
                         res = json.load(resp)
+                    # MyTV resets iptvSourceCurrentIdx to -1 whenever iptvSourceList changes;
+                    # re-fetch and POST a second time to lock in the active source index.
+                    with urlopen(Request(url), timeout=4) as resp:
+                        cfg2 = json.load(resp)
+                    cfg2["iptvSourceCurrentIdx"] = idx
+                    req2 = Request(
+                        url,
+                        data=json.dumps(cfg2).encode("utf-8"),
+                        headers={"Content-Type": "application/json"},
+                    )
+                    with urlopen(req2, timeout=6) as resp:
+                        res = json.load(resp)
                     ok = res.get("code") == 0
                     self.report(
                         "ok     TV Live set to Top Picks + Worldwide"

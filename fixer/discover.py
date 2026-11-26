@@ -135,7 +135,14 @@ def _probe_port(ip: str, port: int, timeout: float = 0.35) -> bool:
 
 
 def _local_subnet_candidates() -> list[str]:
-    """Build the local /24 IPv4 range when ARP cache has not seen the Mi Box yet."""
+    """Build local /24 IPv4 ranges from LAN ARP prefixes + default route (works even with VPN on)."""
+    prefixes: list[str] = []
+    for ip in _arp_candidates():
+        parts = ip.split(".")
+        if len(parts) == 4 and ip.startswith(("192.168.", "10.", "172.")):
+            p = ".".join(parts[:3])
+            if p not in prefixes:
+                prefixes.append(p)
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.connect(("8.8.8.8", 80))
@@ -143,11 +150,15 @@ def _local_subnet_candidates() -> list[str]:
         sock.close()
         parts = local_ip.split(".")
         if len(parts) == 4 and local_ip.startswith(("192.168.", "10.", "172.")):
-            prefix = ".".join(parts[:3])
-            return [f"{prefix}.{i}" for i in range(2, 255) if f"{prefix}.{i}" != local_ip]
+            p = ".".join(parts[:3])
+            if p not in prefixes:
+                prefixes.append(p)
     except OSError:
         pass
-    return []
+    out: list[str] = []
+    for prefix in prefixes[:2]:
+        out.extend(f"{prefix}.{i}" for i in range(2, 255))
+    return out
 
 
 def discover_miboxes(extra_ips: Optional[list[str]] = None) -> list[DiscoveredBox]:
